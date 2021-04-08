@@ -1,9 +1,9 @@
 use actix_web::{web, App, HttpServer};
-use portfolio_webhook::handler::{self, AppState};
+use portfolio_webhook::handler::{self, WebHook};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let data = AppState::new("a");
+    let data = WebHook::new("a");
     HttpServer::new(move || {
         App::new()
             .data(data.clone())
