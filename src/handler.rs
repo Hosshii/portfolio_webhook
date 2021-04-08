@@ -1,4 +1,7 @@
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{
+    web::{self, BytesMut},
+    HttpMessage, HttpRequest, HttpResponse, Responder,
+};
 
 use github_webhook::event::{self, Event};
 use hex::FromHex;
@@ -58,5 +61,51 @@ impl AppState {
         Self {
             secret: Arc::new(secret.into()),
         }
+    }
+}
+
+struct WebHook {
+    secret: Arc<String>,
+}
+
+impl WebHook {
+    pub fn new(secret: impl Into<String>) -> Self {
+        Self {
+            secret: Arc::new(secret.into()),
+        }
+    }
+
+    pub fn authenticate(&self, payload: &str, signature: &str) -> bool {
+        let secret = self.secret.as_bytes();
+        let payload = payload.as_bytes();
+        // let payload = payload[..payload.len() - 1].as_bytes();
+        let prefix = signature[7..signature.len()].as_bytes();
+        match Vec::from_hex(prefix) {
+            Ok(sig_bytes) => {
+                let key = hmac::Key::new(hmac::HMAC_SHA256, secret);
+                let tag = hmac::sign(&key, payload);
+                verify_slices_are_equal(tag.as_ref(), &sig_bytes).is_ok()
+            }
+            Err(_) => false,
+        }
+    }
+
+    pub fn parse(&self, req: &mut HttpRequest, body: &String) -> Result<Event, serde_json::Error> {
+        let secret = self.secret.as_ref();
+        let event = req.headers().get(X_GITHUB_EVENT).unwrap().to_str().unwrap();
+        let signature = req
+            .headers()
+            .get(X_HUB_SIGNATURE)
+            .unwrap()
+            .to_str()
+            .unwrap();
+
+        if !verify_signature(secret, &body, signature) {
+            return HttpResponse::Forbidden().body("Not authorized");
+        }
+
+        let payload = event::patch_payload_json(event, &body);
+        let event = serde_json::from_str::<Event>(&payload);
+        event
     }
 }
