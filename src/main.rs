@@ -7,6 +7,7 @@ use portfolio_webhook::webhook::WebHook;
 const ENV_TRAQ_WEBHOOK_ID: &str = "TRAQ_WEBHOOK_ID";
 const ENV_TRAQ_WEBHOOK_SECRET: &str = "TRAQ_WEBHOOK_SECRET";
 const ENV_GITHUB_WEBHOOK_SECRET: &str = "GITHUB_WEBHOOK_SECRET";
+const ENV_PORT: &str = "PORT";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -21,16 +22,18 @@ async fn main() -> std::io::Result<()> {
         "{} is must not be empty",
         ENV_GITHUB_WEBHOOK_SECRET
     ));
+    let port = env::var(ENV_PORT).expect(&format!("{} is must not be empty", ENV_PORT));
 
     let data = WebHook::new(github_webhook_secret, traq_webhook_secret, traq_webhook_id);
 
+    let addr = format!("0.0.0.0:{}", port);
     HttpServer::new(move || {
         App::new()
             .data(data.clone())
             // .service(handler::webhook)
             .route("/webhook", web::post().to(handler::webhook))
     })
-    .bind("127.0.0.1:8080")?
+    .bind(addr)?
     .run()
     .await
 }

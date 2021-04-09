@@ -37,5 +37,5 @@ jobs:
       - name: artifact
         uses: actions/upload-artifact@v1
         with:
-          name: echo_server
-          path: ./target/release/echo_server
+          name: portfolio_webhook
+          path: ./target/release/portfolio_webhook
