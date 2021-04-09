@@ -13,6 +13,8 @@ use std::sync::Arc;
 const X_GITHUB_EVENT: &str = "X-Github-Event";
 const X_HUB_SIGNATURE: &str = "X-Hub-Signature-256";
 
+const X_TRAQ_SIGNATURE: &str = "X-TRAQ-Signature";
+
 fn generate_signature<'a>(message: &'a str, secret: &'a str) -> Vec<u8> {
     let key = hmac::Key::new(hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY, secret.as_bytes());
     let tag = hmac::sign(&key, message.as_bytes());
@@ -83,7 +85,7 @@ impl WebHook {
 
         let sig = generate_signature(&message, &self.traq_secret).encode_hex::<String>();
         let mut headers = HeaderMap::new();
-        headers.insert("X-TRAQ_Signature", sig.parse().unwrap());
+        headers.insert(X_TRAQ_SIGNATURE, sig.parse().unwrap());
         headers.insert(
             reqwest::header::CONTENT_TYPE,
             "text/plain; charset=utf-8".parse().unwrap(),
