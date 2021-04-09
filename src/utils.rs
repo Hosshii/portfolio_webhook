@@ -357,9 +357,9 @@ impl<T> ContentBuilder<T>
 where
     T: hidden::Marker,
 {
-    pub fn new(event: T) -> Self {
+    pub fn new(event: Rc<T>) -> Self {
         Self {
-            event: Rc::new(event),
+            event: event,
             messages: Vec::new(),
         }
     }
@@ -420,9 +420,23 @@ where
 }
 
 impl<T> ContentBuilder<T> {
-    pub fn build(self) -> (String, ContentBuilder<T>) {
-        let msg = self.messages.join("\n");
+    pub fn build_with_separator(self, separator: &str) -> (String, ContentBuilder<T>) {
+        let msg = self.messages.join(separator);
         (msg, self.clean())
+    }
+
+    pub fn build(self) -> String {
+        let msg = self.messages.join(" ");
+        msg
+    }
+    pub fn build_trim(self) -> String {
+        let msg = self.messages.join("");
+        msg
+    }
+
+    pub fn build_lines(self) -> String {
+        let msg = self.messages.join("\n");
+        msg
     }
 
     pub fn clean(mut self) -> ContentBuilder<T> {
