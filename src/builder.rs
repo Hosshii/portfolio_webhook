@@ -166,6 +166,16 @@ where
     }
 }
 
+impl<T> ContentBuilder<T>
+where
+    T: TAction,
+{
+    pub fn action(mut self) -> ContentBuilder<T> {
+        self.messages.push(self.event.action().md());
+        self
+    }
+}
+
 impl<T> ContentBuilder<T> {
     pub fn build_with_separator(self, separator: &str) -> (String, ContentBuilder<T>) {
         let msg = self.messages.join(separator);

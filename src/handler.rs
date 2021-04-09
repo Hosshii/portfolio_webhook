@@ -42,7 +42,7 @@ async fn issue_handler(hook: &WebHook, event: IssuesEvent) -> Result<HttpRespons
 
     let title = ContentBuilder::new(Rc::clone(&event))
         .issue()
-        .assignees()
+        .action()
         .build();
     let repo = ContentBuilder::new(Rc::clone(&event)).repo().build();
 

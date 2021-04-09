@@ -11,8 +11,8 @@ pub(crate) mod hidden {
 
 pub mod prelude {
     pub use super::{
-        assignee::TAssignee, issue::TIssue, label::TLabel, pull_request::TPullRequest,
-        repository::TRepository,
+        action::TAction, assignee::TAssignee, issue::TIssue, label::TLabel,
+        pull_request::TPullRequest, repository::TRepository,
     };
     pub use super::{
         EIssueComment, EIssues, EPullRequest, EPullRequestReview, EPullRequestReviewComment, EPush,
@@ -334,6 +334,85 @@ pub mod repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.login.clone(),
                 url: self.repository.url.clone(),
+            }
+        }
+    }
+}
+
+pub mod action {
+    use super::*;
+
+    pub struct Action {
+        action: String,
+        sender: String,
+        assignee: Option<String>,
+    }
+
+    impl Action {
+        pub fn md(&self) -> String {
+            if let Some(ref assignee) = self.assignee {
+                format!("{} to {} by {}", self.action, assignee, self.sender)
+            } else {
+                format!("{} by {}", self.action, self.sender)
+            }
+        }
+    }
+
+    pub trait TAction {
+        fn action(&self) -> Action;
+    }
+
+    impl TAction for EIssues {
+        fn action(&self) -> Action {
+            let assignee = self.issue.assignee.as_ref().map(|v| v.login.clone());
+            Action {
+                action: format!("{:?}", self.action),
+                sender: self.sender.login.clone(),
+                assignee,
+            }
+        }
+    }
+
+    impl TAction for EIssueComment {
+        fn action(&self) -> Action {
+            let assignee = self.issue.assignee.as_ref().map(|v| v.login.clone());
+            Action {
+                action: format!("{:?}", self.action),
+                sender: self.sender.login.clone(),
+                assignee,
+            }
+        }
+    }
+
+    impl TAction for EPullRequest {
+        fn action(&self) -> Action {
+            let assignee = self.pull_request.assignee.as_ref().map(|v| v.login.clone());
+            Action {
+                action: format!("{:?}", self.action),
+                sender: self.sender.login.clone(),
+                assignee,
+            }
+        }
+    }
+
+    impl TAction for EPullRequestReview {
+        fn action(&self) -> Action {
+            let assignee = self.pull_request.assignee.as_ref().map(|v| v.login.clone());
+            Action {
+                action: format!("{:?}", self.action),
+                sender: self.sender.login.clone(),
+                assignee,
+            }
+        }
+    }
+
+    impl TAction for EPullRequestReviewComment {
+        fn action(&self) -> Action {
+            let assignee = self.pull_request.assignee.as_ref().map(|v| v.login.clone());
+            Action {
+                action: format!("{:?}", self.action),
+                sender: self.sender.login.clone(),
+                assignee,
             }
         }
     }
