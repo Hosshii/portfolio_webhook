@@ -1,8 +1,4 @@
-use github_webhook::event::Event;
-use std::{
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 pub struct Message(String);
 
@@ -19,25 +15,23 @@ impl DerefMut for Message {
     }
 }
 
-pub struct MessageBuilder<Title, Msg, Repo> {
+pub struct MessageBuilder<Title, Repo> {
     title: Title,
     msgs: Vec<String>,
-    _msg_exists: PhantomData<Msg>,
     repo: Repo,
 }
 
-impl MessageBuilder<(), (), ()> {
+impl MessageBuilder<(), ()> {
     pub fn new() -> Self {
         Self {
             title: (),
             msgs: Vec::new(),
-            _msg_exists: PhantomData,
             repo: (),
         }
     }
 }
 
-impl MessageBuilder<String, Vec<String>, Repository> {
+impl MessageBuilder<String, Repository> {
     pub fn build(self) -> Message {
         use std::fmt::Write;
 
@@ -59,41 +53,37 @@ impl MessageBuilder<String, Vec<String>, Repository> {
     }
 }
 
-impl<Title, Msgs, Repo> MessageBuilder<Title, Msgs, Repo> {
-    pub fn title(self, title: impl Into<String>) -> MessageBuilder<String, Msgs, Repo> {
+impl<Title, Repo> MessageBuilder<Title, Repo> {
+    pub fn title(self, title: impl Into<String>) -> MessageBuilder<String, Repo> {
         MessageBuilder {
             title: title.into(),
             msgs: self.msgs,
-            _msg_exists: self._msg_exists,
             repo: self.repo,
         }
     }
 
-    pub fn msgs(mut self, mut msgs: Vec<String>) -> MessageBuilder<Title, Vec<String>, Repo> {
+    pub fn msgs(mut self, mut msgs: Vec<String>) -> MessageBuilder<Title, Repo> {
         self.msgs.append(&mut msgs);
         MessageBuilder {
             title: self.title,
             msgs: self.msgs,
-            _msg_exists: PhantomData,
             repo: self.repo,
         }
     }
 
-    pub fn msg(mut self, msg: impl Into<String>) -> MessageBuilder<Title, Vec<String>, Repo> {
+    pub fn msg(mut self, msg: impl Into<String>) -> MessageBuilder<Title, Repo> {
         self.msgs.push(msg.into());
         MessageBuilder {
             title: self.title,
             msgs: self.msgs,
-            _msg_exists: PhantomData,
             repo: self.repo,
         }
     }
 
-    pub fn repo(self, repo: Repository) -> MessageBuilder<Title, Msgs, Repository> {
+    pub fn repo(self, repo: Repository) -> MessageBuilder<Title, Repository> {
         MessageBuilder {
             title: self.title,
             msgs: self.msgs,
-            _msg_exists: self._msg_exists,
             repo: repo,
         }
     }
