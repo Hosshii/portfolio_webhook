@@ -428,8 +428,13 @@ pub mod action {
 
     impl TAction for EPush {
         fn action(&self) -> Action {
+            let action = if self.commits.len() > 1 {
+                format!("{} commits pushed", self.commits.len())
+            } else {
+                format!("{} commit pushed", self.commits.len())
+            };
             Action {
-                action: "Pushed".to_string(),
+                action: action,
                 sender: self.sender.login.clone(),
                 assignee: None,
             }

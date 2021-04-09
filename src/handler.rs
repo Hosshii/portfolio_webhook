@@ -8,7 +8,6 @@ use github_webhook::event::{
     Event, IssueCommentEvent, IssuesEvent, PullRequestEvent, PullRequestReviewCommentEvent,
     PullRequestReviewEvent, PushEvent,
 };
-use log::info;
 use std::rc::Rc;
 
 pub async fn webhook(
@@ -21,13 +20,18 @@ pub async fn webhook(
     match result {
         Ok(event) => {
             match event {
-                Event::Issues(e) => {
-                    issue_handler(&hook, e).await?;
+                Event::Issues(e) => issue_handler(&hook, e).await,
+                Event::IssueComment(e) => issue_comment_handler(&hook, e).await,
+                Event::PullRequest(e) => pull_request_handler(&hook, e).await,
+                Event::PullRequestReview(e) => pull_request_review_handler(&hook, e).await,
+                Event::PullRequestReviewComment(e) => {
+                    pull_request_review_comment_handler(&hook, e).await
                 }
+                Event::Push(e) => push_handler(&hook, e).await,
                 _ => unimplemented!(),
             }
 
-            Ok(HttpResponse::Ok().body("correctly parsed"))
+            // Ok(HttpResponse::Ok().body("correctly parsed"))
         }
         Err(e) => {
             println!("{}", e);
@@ -48,10 +52,7 @@ async fn issue_handler(hook: &WebHook, event: IssuesEvent) -> Result<HttpRespons
 
     let message = MessageBuilder::new().title(title).repo(repo).build();
 
-    info!("msg {}", message);
-    // let res = hook.post_message(&message).await?;
-
-    // info!("{:?}", res);
+    let res = hook.post_message(&message).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }
@@ -70,10 +71,7 @@ async fn issue_comment_handler(
 
     let message = MessageBuilder::new().title(title).repo(repo).build();
 
-    info!("msg {}", message);
-    // let res = hook.post_message(&message).await?;
-
-    // info!("{:?}", res);
+    let res = hook.post_message(&message).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }
@@ -93,10 +91,7 @@ async fn push_handler(hook: &WebHook, event: PushEvent) -> Result<HttpResponse, 
         .repo(repo)
         .build();
 
-    info!("msg {}", message);
-    // let res = hook.post_message(&message).await?;
-
-    // info!("{:?}", res);
+    let res = hook.post_message(&message).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }
@@ -112,10 +107,7 @@ async fn pull_request_handler(
 
     let message = MessageBuilder::new().title(title).repo(repo).build();
 
-    info!("msg {}", message);
-    // let res = hook.post_message(&message).await?;
-
-    // info!("{:?}", res);
+    let res = hook.post_message(&message).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }
@@ -131,10 +123,7 @@ async fn pull_request_review_handler(
 
     let message = MessageBuilder::new().title(title).repo(repo).build();
 
-    info!("msg {}", message);
-    // let res = hook.post_message(&message).await?;
-
-    // info!("{:?}", res);
+    let res = hook.post_message(&message).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }
@@ -150,10 +139,7 @@ async fn pull_request_review_comment_handler(
 
     let message = MessageBuilder::new().title(title).repo(repo).build();
 
-    info!("msg {}", message);
-    // let res = hook.post_message(&message).await?;
-
-    // info!("{:?}", res);
+    let res = hook.post_message(&message).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }
