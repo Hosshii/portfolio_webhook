@@ -1,24 +1,18 @@
-use actix_web::{
-    web::{self},
-    HttpMessage, HttpRequest, HttpResponse, Responder,
+use crate::error::MyError;
+use crate::message::{MessageBuilder, Repository};
+use crate::webhook::WebHook;
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use github_webhook::event::{
+    Event, IssueCommentEvent, IssuesAction, IssuesEvent, PullRequestEvent,
+    PullRequestReviewCommentEvent, PullRequestReviewEvent, PushEvent,
 };
-
-use anyhow::{bail, Context, Result};
-use github_webhook::event::{self, Event};
-use hex::FromHex;
-use ring::{constant_time::verify_slices_are_equal, hmac};
-use serde_json;
-use std::sync::Arc;
-
-const X_GITHUB_EVENT: &str = "X-Github-Event";
-const X_HUB_SIGNATURE: &str = "X-Hub-Signature-256";
 
 pub async fn webhook(
     mut req: HttpRequest,
     hook: web::Data<WebHook>,
     body: String,
 ) -> impl Responder {
-    let result = hook.parse(&mut req, &body);
+    let result = hook.parse_and_authenticate(&mut req, &body);
 
     match result {
         Ok(event) => {
@@ -34,48 +28,44 @@ pub async fn webhook(
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct WebHook {
-    secret: Arc<String>,
-}
+async fn issue_handler(hook: &WebHook, event: IssuesEvent) -> Result<HttpResponse, MyError> {
+    use IssuesAction::*;
 
-impl WebHook {
-    pub fn new(secret: impl Into<String>) -> Self {
-        Self {
-            secret: Arc::new(secret.into()),
+    let issue_name = format!(
+        "[#{} {}]({})",
+        event.issue.number, event.issue.title, event.issue.html_url
+    );
+
+    let title = match &event.action {
+        Assigned | Unassigned => {
+            format!(
+                "Issue {} {:?} to `{}` by `{}`",
+                issue_name,
+                event.action,
+                event.issue.assignee.ok_or(MyError::ReadPayloadError)?.login,
+                event.sender.login
+            )
         }
-    }
-
-    pub fn authenticate(&self, payload: &str, signature: &str) -> bool {
-        let secret = self.secret.as_bytes();
-        let payload = payload.as_bytes();
-        // let payload = payload[..payload.len() - 1].as_bytes();
-        let prefix = signature[7..signature.len()].as_bytes();
-        match Vec::from_hex(prefix) {
-            Ok(sig_bytes) => {
-                let key = hmac::Key::new(hmac::HMAC_SHA256, secret);
-                let tag = hmac::sign(&key, payload);
-                verify_slices_are_equal(tag.as_ref(), &sig_bytes).is_ok()
-            }
-            Err(_) => false,
+        action => {
+            format!(
+                "Issue {} {:?} by `{}`",
+                issue_name, action, event.sender.login
+            )
         }
-    }
+    };
 
-    pub fn parse(&self, req: &mut HttpRequest, body: &String) -> Result<Event> {
-        let event = req.headers().get(X_GITHUB_EVENT).unwrap().to_str().unwrap();
-        let signature = req
-            .headers()
-            .get(X_HUB_SIGNATURE)
-            .unwrap()
-            .to_str()
-            .unwrap();
+    let repo = Repository::new(
+        &event.repository.html_url,
+        &event.repository.owner.login,
+        &event.repository.name,
+    );
+    let message = MessageBuilder::new()
+        .repo(repo)
+        .title(&title)
+        .msg(title)
+        .build();
 
-        if !self.authenticate(&body, signature) {
-            bail!("permission denied")
-        }
+    hook.post_message(&message).await?;
 
-        let payload = event::patch_payload_json(event, &body);
-        let event = serde_json::from_str::<Event>(&payload);
-        event.context("parse failed")
-    }
+    Ok(HttpResponse::Ok().body("successfully posted"))
 }
