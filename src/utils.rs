@@ -11,7 +11,7 @@ pub(crate) mod hidden {
 
 pub mod prelude {
     pub use super::{
-        action::TAction, assignee::TAssignee, issue::TIssue, label::TLabel,
+        action::TAction, assignee::TAssignee, commit::TCommit, issue::TIssue, label::TLabel,
         pull_request::TPullRequest, repository::TRepository,
     };
     pub use super::{
@@ -337,6 +337,15 @@ pub mod repository {
             }
         }
     }
+    impl TRepository for EPush {
+        fn repo(&self) -> Repository {
+            Repository {
+                name: self.repository.name.clone(),
+                owner: self.repository.owner.name.clone(),
+                url: self.repository.url.clone(),
+            }
+        }
+    }
 }
 
 pub mod action {
@@ -414,6 +423,63 @@ pub mod action {
                 sender: self.sender.login.clone(),
                 assignee,
             }
+        }
+    }
+
+    impl TAction for EPush {
+        fn action(&self) -> Action {
+            Action {
+                action: "Pushed".to_string(),
+                sender: self.sender.login.clone(),
+                assignee: None,
+            }
+        }
+    }
+}
+
+pub mod commit {
+    use super::*;
+
+    pub struct Commit {
+        committer: String,
+        time: String,
+        message: String,
+        id: String,
+        url: String,
+    }
+
+    impl Commit {
+        pub fn md(&self) -> String {
+            let id: String = self.id.chars().take(7).collect();
+            format!(
+                "[{}]({}) - {} {} {}",
+                id, self.url, self.message, self.time, self.committer
+            )
+        }
+    }
+
+    pub trait TCommit {
+        fn commits(&self) -> Vec<Commit>;
+    }
+
+    impl TCommit for EPush {
+        fn commits(&self) -> Vec<Commit> {
+            use chrono::DateTime;
+
+            let mut commits = Vec::with_capacity(self.commits.len());
+            for commit in &self.commits {
+                let time = DateTime::parse_from_rfc3339(&commit.timestamp)
+                    .map(|time| time.format("%a %b %e %T %Y %z").to_string())
+                    .unwrap_or("time parse error".to_string());
+                commits.push(Commit {
+                    committer: commit.committer.name.clone(),
+                    time,
+                    message: commit.message.clone(),
+                    id: commit.id.clone(),
+                    url: commit.url.clone(),
+                });
+            }
+            commits
         }
     }
 }

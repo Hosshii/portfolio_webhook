@@ -53,7 +53,7 @@ impl MessageBuilder<String, String> {
             writeln!(buf, "{}", m).expect("buf error");
         }
 
-        writeln!(buf, "#### {}", self.footer).expect("buf error");
+        writeln!(buf, "##### {}", self.footer).expect("buf error");
 
         Message(buf)
     }
@@ -176,6 +176,17 @@ where
     }
 }
 
+impl<T> ContentBuilder<T>
+where
+    T: TCommit,
+{
+    pub fn commit(mut self) -> ContentBuilder<T> {
+        let mut commits: Vec<String> = self.event.commits().into_iter().map(|c| c.md()).collect();
+        self.messages.append(&mut commits);
+        self
+    }
+}
+
 impl<T> ContentBuilder<T> {
     pub fn build_with_separator(self, separator: &str) -> (String, ContentBuilder<T>) {
         let msg = self.messages.join(separator);
@@ -194,6 +205,10 @@ impl<T> ContentBuilder<T> {
     pub fn build_lines(self) -> String {
         let msg = self.messages.join("\n");
         msg
+    }
+
+    pub fn take(self) -> Vec<String> {
+        self.messages
     }
 
     pub fn clean(mut self) -> ContentBuilder<T> {
