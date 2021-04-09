@@ -760,7 +760,7 @@ dependencies = [
 [[package]]
 name = "github_webhook"
 version = "0.1.0"
-source = "git+https://github.com/hosshii/github_webhook.git?branch=main#b89585180bf8401295c5704a925918917df261f8"
+source = "git+https://github.com/hosshii/github_webhook.git?branch=main#5a7722b2baeef303e7cc87f1aca811816bff1879"
 dependencies = [
  "case",
  "serde",
