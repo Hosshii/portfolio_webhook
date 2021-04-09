@@ -28,6 +28,7 @@ pub async fn webhook(
                     pull_request_review_comment_handler(&hook, e).await
                 }
                 Event::Push(e) => push_handler(&hook, e).await,
+                Event::Ping(_) => ping_handler().await,
                 _ => unimplemented!(),
             }
 
@@ -142,4 +143,8 @@ async fn pull_request_review_comment_handler(
     let _ = hook.post_message(message.as_ref()).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
+}
+
+async fn ping_handler() -> Result<HttpResponse, MyError> {
+    Ok(HttpResponse::Ok().body("pong!"))
 }
