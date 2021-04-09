@@ -1,4 +1,4 @@
-use std::usize;
+use std::{rc::Rc, usize};
 
 use github_webhook::event::{
     self, Event, IssueCommentEvent, IssuesEvent, PullRequestEvent, PullRequestReviewCommentEvent,
@@ -342,25 +342,25 @@ impl TRepository for EPullRequestReviewComment {
 //     )
 // );
 
-pub struct MessageBuilder<T> {
-    event: T,
+pub struct ContentBuilder<T> {
+    event: Rc<T>,
     messages: Vec<String>,
 }
 
-impl<T> MessageBuilder<T> {
+impl<T> ContentBuilder<T> {
     pub fn new(event: T) -> Self {
         Self {
-            event,
+            event: Rc::new(event),
             messages: Vec::new(),
         }
     }
 }
 
-impl<T> MessageBuilder<T>
+impl<T> ContentBuilder<T>
 where
     T: TAssignee,
 {
-    pub fn assignees(mut self) -> MessageBuilder<T> {
+    pub fn assignees(mut self) -> ContentBuilder<T> {
         let assignees: Vec<String> = self.event.assignees().into_iter().map(|a| a.md()).collect();
         let msg = truncate_msg(assignees, 2);
 
@@ -370,41 +370,41 @@ where
     }
 }
 
-impl<T> MessageBuilder<T>
+impl<T> ContentBuilder<T>
 where
     T: TIssue,
 {
-    pub fn issue(mut self) -> MessageBuilder<T> {
+    pub fn issue(mut self) -> ContentBuilder<T> {
         self.messages.push(self.event.issue().link_md());
         self
     }
 }
-impl<T> MessageBuilder<T>
+impl<T> ContentBuilder<T>
 where
     T: TLabel,
 {
-    pub fn labels(mut self) -> MessageBuilder<T> {
+    pub fn labels(mut self) -> ContentBuilder<T> {
         let labels = self.event.labels().into_iter().map(|l| l.md()).collect();
         let msg = truncate_msg(labels, 2);
         self.messages.push(msg);
         self
     }
 }
-impl<T> MessageBuilder<T>
+impl<T> ContentBuilder<T>
 where
     T: TPullRequest,
 {
-    pub fn pr(mut self) -> MessageBuilder<T> {
+    pub fn pr(mut self) -> ContentBuilder<T> {
         self.messages.push(self.event.pr().link_md());
         self
     }
 }
 
-impl<T> MessageBuilder<T>
+impl<T> ContentBuilder<T>
 where
     T: TRepository,
 {
-    pub fn repo(mut self) -> MessageBuilder<T> {
+    pub fn repo(mut self) -> ContentBuilder<T> {
         self.messages.push(self.event.repo().link_md());
         self
     }

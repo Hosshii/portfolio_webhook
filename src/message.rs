@@ -15,10 +15,10 @@ impl DerefMut for Message {
     }
 }
 
-pub struct MessageBuilder<Title, Repo> {
+pub struct MessageBuilder<Title, Footer> {
     title: Title,
     msgs: Vec<String>,
-    repo: Repo,
+    footer: Footer,
 }
 
 impl MessageBuilder<(), ()> {
@@ -26,12 +26,12 @@ impl MessageBuilder<(), ()> {
         Self {
             title: (),
             msgs: Vec::new(),
-            repo: (),
+            footer: (),
         }
     }
 }
 
-impl MessageBuilder<String, Repository> {
+impl MessageBuilder<String, String> {
     pub fn build(self) -> Message {
         use std::fmt::Write;
 
@@ -42,65 +42,44 @@ impl MessageBuilder<String, Repository> {
             writeln!(buf, "{}", m).expect("buf error");
         }
 
-        writeln!(
-            buf,
-            "#### [{}/{}]({})",
-            self.repo.owner, self.repo.name, self.repo.url
-        )
-        .expect("buf error");
+        writeln!(buf, "#### {}", self.footer).expect("buf error");
 
         Message(buf)
     }
 }
 
-impl<Title, Repo> MessageBuilder<Title, Repo> {
-    pub fn title(self, title: impl Into<String>) -> MessageBuilder<String, Repo> {
+impl<Title, Footer> MessageBuilder<Title, Footer> {
+    pub fn title(self, title: impl Into<String>) -> MessageBuilder<String, Footer> {
         MessageBuilder {
             title: title.into(),
             msgs: self.msgs,
-            repo: self.repo,
+            footer: self.footer,
         }
     }
 
-    pub fn msgs(mut self, mut msgs: Vec<String>) -> MessageBuilder<Title, Repo> {
+    pub fn msgs(mut self, mut msgs: Vec<String>) -> MessageBuilder<Title, Footer> {
         self.msgs.append(&mut msgs);
         MessageBuilder {
             title: self.title,
             msgs: self.msgs,
-            repo: self.repo,
+            footer: self.footer,
         }
     }
 
-    pub fn msg(mut self, msg: impl Into<String>) -> MessageBuilder<Title, Repo> {
+    pub fn msg(mut self, msg: impl Into<String>) -> MessageBuilder<Title, Footer> {
         self.msgs.push(msg.into());
         MessageBuilder {
             title: self.title,
             msgs: self.msgs,
-            repo: self.repo,
+            footer: self.footer,
         }
     }
 
-    pub fn repo(self, repo: Repository) -> MessageBuilder<Title, Repository> {
+    pub fn repo(self, footer: String) -> MessageBuilder<Title, String> {
         MessageBuilder {
             title: self.title,
             msgs: self.msgs,
-            repo: repo,
-        }
-    }
-}
-
-pub struct Repository {
-    url: String,
-    owner: String,
-    name: String,
-}
-
-impl Repository {
-    pub fn new(url: impl Into<String>, owner: impl Into<String>, name: impl Into<String>) -> Self {
-        Self {
-            url: url.into(),
-            name: name.into(),
-            owner: owner.into(),
+            footer: footer,
         }
     }
 }
