@@ -5,8 +5,18 @@ use github_webhook::event::{
     PullRequestReviewEvent, PushEvent,
 };
 
-mod hidden {
+pub(crate) mod hidden {
     pub trait Marker {}
+}
+
+pub mod prelude {
+    pub use super::{
+        assignee::TAssignee, issue::TIssue, label::TLabel, pull_request::TPullRequest,
+        repository::TRepository,
+    };
+    pub use super::{
+        EIssueComment, EIssues, EPullRequest, EPullRequestReview, EPullRequestReviewComment, EPush,
+    };
 }
 
 macro_rules! newtype {
@@ -40,415 +50,291 @@ newtype! {
     EPush, PushEvent
 }
 
-// macro_rules! marker_trait {
-//     ( $($trait:ty, $($type:ty),*), *) => {
-//         $(
-//             $(
-//                 impl $trait for $type {}
-//             )*
-//         )*
-//     };
-// }
+pub mod issue {
+    use super::*;
 
-pub struct Issue {
-    num: u64,
-    title: String,
-    url: String,
-    assignees: Vec<String>,
-}
+    pub struct Issue {
+        num: u64,
+        title: String,
+        url: String,
+        assignees: Vec<String>,
+    }
 
-impl Issue {
-    pub fn link_md(&self) -> String {
-        format!("[#{} {}]({})", self.num, self.title, self.url)
+    impl Issue {
+        pub fn link_md(&self) -> String {
+            format!("[#{} {}]({})", self.num, self.title, self.url)
+        }
+    }
+
+    pub trait TIssue {
+        fn issue(&self) -> Issue;
+    }
+
+    impl TIssue for EIssueComment {
+        fn issue(&self) -> Issue {
+            Issue {
+                assignees: self
+                    .0
+                    .issue
+                    .assignees
+                    .iter()
+                    .map(|a| a.login.clone())
+                    .collect(),
+                num: self.0.issue.number,
+                url: self.0.issue.html_url.clone(),
+                title: self.0.issue.title.clone(),
+            }
+        }
+    }
+
+    impl TIssue for EIssues {
+        fn issue(&self) -> Issue {
+            Issue {
+                assignees: self
+                    .0
+                    .issue
+                    .assignees
+                    .iter()
+                    .map(|a| a.login.clone())
+                    .collect(),
+                num: self.0.issue.number,
+                url: self.0.issue.html_url.clone(),
+                title: self.0.issue.title.clone(),
+            }
+        }
     }
 }
 
-pub trait TIssue {
-    fn issue(&self) -> Issue;
+pub mod label {
+
+    use super::issue::TIssue;
+    use super::*;
+    #[derive(Debug, Clone)]
+    pub struct Label {
+        pub color: String,
+        pub name: String,
+        pub url: String,
+    }
+
+    impl Label {
+        pub fn md(&self) -> String {
+            format!("[{}]({})", self.name, self.url)
+        }
+    }
+    pub trait TLabel: TIssue {
+        fn labels(&self) -> Vec<Label>;
+    }
+
+    impl From<&event::Label> for Label {
+        fn from(from: &event::Label) -> Self {
+            Label {
+                color: from.color.clone(),
+                name: from.name.clone(),
+                url: from.url.clone(),
+            }
+        }
+    }
+
+    impl TLabel for EIssueComment {
+        fn labels(&self) -> Vec<Label> {
+            self.issue.labels.iter().map(|l| l.into()).collect()
+        }
+    }
+
+    impl TLabel for EIssues {
+        fn labels(&self) -> Vec<Label> {
+            self.0.issue.labels.iter().map(|l| l.into()).collect()
+        }
+    }
 }
 
-impl TIssue for EIssueComment {
-    fn issue(&self) -> Issue {
-        Issue {
-            assignees: self
-                .0
-                .issue
+pub mod pull_request {
+    use super::*;
+
+    pub struct PullRequest {
+        num: u64,
+        title: String,
+        url: String,
+    }
+
+    impl PullRequest {
+        pub fn link_md(&self) -> String {
+            format!("[#{} {}]({})", self.num, self.title, self.url)
+        }
+    }
+
+    pub trait TPullRequest {
+        fn pr(&self) -> PullRequest;
+    }
+
+    impl TPullRequest for EPullRequest {
+        fn pr(&self) -> PullRequest {
+            PullRequest {
+                num: self.number,
+                title: self.0.pull_request.title.clone(),
+                url: self.0.pull_request.url.clone(),
+            }
+        }
+    }
+
+    impl TPullRequest for EPullRequestReview {
+        fn pr(&self) -> PullRequest {
+            PullRequest {
+                num: self.pull_request.number,
+                title: self.pull_request.title.clone(),
+                url: self.pull_request.url.clone(),
+            }
+        }
+    }
+
+    impl TPullRequest for EPullRequestReviewComment {
+        fn pr(&self) -> PullRequest {
+            PullRequest {
+                num: self.pull_request.number,
+                title: self.pull_request.title.clone(),
+                url: self.pull_request.url.clone(),
+            }
+        }
+    }
+}
+
+pub mod assignee {
+    use super::*;
+
+    pub struct Assignee {
+        pub name: String,
+    }
+    impl Assignee {
+        pub fn new(name: impl Into<String>) -> Self {
+            Self { name: name.into() }
+        }
+
+        pub fn md(&self) -> String {
+            self.name.clone()
+        }
+    }
+
+    pub trait TAssignee {
+        fn assignees(&self) -> Vec<Assignee>;
+    }
+
+    impl TAssignee for EIssues {
+        fn assignees(&self) -> Vec<Assignee> {
+            self.issue
                 .assignees
                 .iter()
-                .map(|a| a.login.clone())
-                .collect(),
-            num: self.0.issue.number,
-            url: self.0.issue.html_url.clone(),
-            title: self.0.issue.title.clone(),
+                .map(|a| Assignee::new(a.login.clone()))
+                .collect()
         }
     }
-}
 
-impl TIssue for EIssues {
-    fn issue(&self) -> Issue {
-        Issue {
-            assignees: self
-                .0
-                .issue
+    impl TAssignee for EIssueComment {
+        fn assignees(&self) -> Vec<Assignee> {
+            self.issue
                 .assignees
                 .iter()
-                .map(|a| a.login.clone())
-                .collect(),
-            num: self.0.issue.number,
-            url: self.0.issue.html_url.clone(),
-            title: self.0.issue.title.clone(),
+                .map(|a| Assignee::new(a.login.clone()))
+                .collect()
         }
     }
-}
-// marker_trait!(TIssue, (EIssueComment, EIssues));
 
-#[derive(Debug, Clone)]
-pub struct Label {
-    pub color: String,
-    pub name: String,
-    pub url: String,
-}
-
-impl Label {
-    pub fn md(&self) -> String {
-        format!("[{}]({})", self.name, self.url)
-    }
-}
-pub trait TLabel: TIssue {
-    fn labels(&self) -> Vec<Label>;
-}
-
-impl From<&event::Label> for Label {
-    fn from(from: &event::Label) -> Self {
-        Label {
-            color: from.color.clone(),
-            name: from.name.clone(),
-            url: from.url.clone(),
+    impl TAssignee for EPullRequest {
+        fn assignees(&self) -> Vec<Assignee> {
+            self.pull_request
+                .assignee
+                .iter()
+                .map(|a| Assignee::new(a.login.clone()))
+                .collect()
         }
     }
-}
 
-impl TLabel for EIssueComment {
-    fn labels(&self) -> Vec<Label> {
-        self.issue.labels.iter().map(|l| l.into()).collect()
+    impl TAssignee for EPullRequestReview {
+        fn assignees(&self) -> Vec<Assignee> {
+            self.pull_request
+                .assignee
+                .iter()
+                .map(|a| Assignee::new(a.login.clone()))
+                .collect()
+        }
     }
-}
 
-impl TLabel for EIssues {
-    fn labels(&self) -> Vec<Label> {
-        self.0.issue.labels.iter().map(|l| l.into()).collect()
-    }
-}
-// marker_trait!(TLabel, (EIssueComment, EIssues));
-
-pub struct PullRequest {
-    num: u64,
-    title: String,
-    url: String,
-}
-
-impl PullRequest {
-    fn link_md(&self) -> String {
-        format!("[#{} {}]({})", self.num, self.title, self.url)
-    }
-}
-
-pub trait TPullRequest {
-    fn pr(&self) -> PullRequest;
-}
-
-impl TPullRequest for EPullRequest {
-    fn pr(&self) -> PullRequest {
-        PullRequest {
-            num: self.number,
-            title: self.0.pull_request.title.clone(),
-            url: self.0.pull_request.url.clone(),
+    impl TAssignee for EPullRequestReviewComment {
+        fn assignees(&self) -> Vec<Assignee> {
+            self.pull_request
+                .assignee
+                .iter()
+                .map(|a| Assignee::new(a.login.clone()))
+                .collect()
         }
     }
 }
 
-impl TPullRequest for EPullRequestReview {
-    fn pr(&self) -> PullRequest {
-        PullRequest {
-            num: self.pull_request.number,
-            title: self.pull_request.title.clone(),
-            url: self.pull_request.url.clone(),
+pub mod repository {
+    use super::*;
+
+    pub struct Repository {
+        name: String,
+        owner: String,
+        url: String,
+    }
+
+    impl Repository {
+        pub fn link_md(&self) -> String {
+            format!("[{}/{}]({})", self.owner, self.name, self.url)
         }
     }
-}
 
-impl TPullRequest for EPullRequestReviewComment {
-    fn pr(&self) -> PullRequest {
-        PullRequest {
-            num: self.pull_request.number,
-            title: self.pull_request.title.clone(),
-            url: self.pull_request.url.clone(),
+    pub trait TRepository {
+        fn repo(&self) -> Repository;
+    }
+
+    impl TRepository for EIssues {
+        fn repo(&self) -> Repository {
+            Repository {
+                name: self.repository.name.clone(),
+                owner: self.repository.owner.login.clone(),
+                url: self.repository.url.clone(),
+            }
         }
     }
-}
 
-// marker_trait!(
-//     TPullRequest,
-//     (EPullRequest, EPullRequestReviewComment, EPullRequestReview)
-// );
-
-pub struct Assignee {
-    pub name: String,
-}
-impl Assignee {
-    pub fn new(name: impl Into<String>) -> Self {
-        Self { name: name.into() }
-    }
-
-    pub fn md(&self) -> String {
-        self.name.clone()
-    }
-}
-
-pub trait TAssignee {
-    fn assignees(&self) -> Vec<Assignee>;
-}
-
-impl TAssignee for EIssues {
-    fn assignees(&self) -> Vec<Assignee> {
-        self.issue
-            .assignees
-            .iter()
-            .map(|a| Assignee::new(a.login.clone()))
-            .collect()
-    }
-}
-
-impl TAssignee for EIssueComment {
-    fn assignees(&self) -> Vec<Assignee> {
-        self.issue
-            .assignees
-            .iter()
-            .map(|a| Assignee::new(a.login.clone()))
-            .collect()
-    }
-}
-
-impl TAssignee for EPullRequest {
-    fn assignees(&self) -> Vec<Assignee> {
-        self.pull_request
-            .assignee
-            .iter()
-            .map(|a| Assignee::new(a.login.clone()))
-            .collect()
-    }
-}
-
-impl TAssignee for EPullRequestReview {
-    fn assignees(&self) -> Vec<Assignee> {
-        self.pull_request
-            .assignee
-            .iter()
-            .map(|a| Assignee::new(a.login.clone()))
-            .collect()
-    }
-}
-
-impl TAssignee for EPullRequestReviewComment {
-    fn assignees(&self) -> Vec<Assignee> {
-        self.pull_request
-            .assignee
-            .iter()
-            .map(|a| Assignee::new(a.login.clone()))
-            .collect()
-    }
-}
-
-// marker_trait!(
-//     TAssignee,
-//     (
-//         EIssues,
-//         EIssueComment,
-//         EPullRequest,
-//         EPullRequestReview,
-//         EPullRequestReviewComment
-//     )
-// );
-
-pub struct Repository {
-    name: String,
-    owner: String,
-    url: String,
-}
-
-impl Repository {
-    pub fn link_md(&self) -> String {
-        format!("[{}/{}]({})", self.owner, self.name, self.url)
-    }
-}
-
-pub trait TRepository {
-    fn repo(&self) -> Repository;
-}
-
-impl TRepository for EIssues {
-    fn repo(&self) -> Repository {
-        Repository {
-            name: self.repository.name.clone(),
-            owner: self.repository.owner.login.clone(),
-            url: self.repository.url.clone(),
+    impl TRepository for EIssueComment {
+        fn repo(&self) -> Repository {
+            Repository {
+                name: self.repository.name.clone(),
+                owner: self.repository.owner.login.clone(),
+                url: self.repository.url.clone(),
+            }
         }
     }
-}
 
-impl TRepository for EIssueComment {
-    fn repo(&self) -> Repository {
-        Repository {
-            name: self.repository.name.clone(),
-            owner: self.repository.owner.login.clone(),
-            url: self.repository.url.clone(),
+    impl TRepository for EPullRequest {
+        fn repo(&self) -> Repository {
+            Repository {
+                name: self.repository.name.clone(),
+                owner: self.repository.owner.login.clone(),
+                url: self.repository.url.clone(),
+            }
         }
     }
-}
 
-impl TRepository for EPullRequest {
-    fn repo(&self) -> Repository {
-        Repository {
-            name: self.repository.name.clone(),
-            owner: self.repository.owner.login.clone(),
-            url: self.repository.url.clone(),
+    impl TRepository for EPullRequestReview {
+        fn repo(&self) -> Repository {
+            Repository {
+                name: self.repository.name.clone(),
+                owner: self.repository.owner.login.clone(),
+                url: self.repository.url.clone(),
+            }
         }
     }
-}
 
-impl TRepository for EPullRequestReview {
-    fn repo(&self) -> Repository {
-        Repository {
-            name: self.repository.name.clone(),
-            owner: self.repository.owner.login.clone(),
-            url: self.repository.url.clone(),
+    impl TRepository for EPullRequestReviewComment {
+        fn repo(&self) -> Repository {
+            Repository {
+                name: self.repository.name.clone(),
+                owner: self.repository.owner.login.clone(),
+                url: self.repository.url.clone(),
+            }
         }
-    }
-}
-
-impl TRepository for EPullRequestReviewComment {
-    fn repo(&self) -> Repository {
-        Repository {
-            name: self.repository.name.clone(),
-            owner: self.repository.owner.login.clone(),
-            url: self.repository.url.clone(),
-        }
-    }
-}
-
-// marker_trait!(
-//     TRepository,
-//     (
-//         EIssues,
-//         EIssueComment,
-//         EPullRequest,
-//         EPullRequestReview,
-//         EPullRequestReviewComment,
-//         EPush
-//     )
-// );
-
-pub struct ContentBuilder<T> {
-    event: Rc<T>,
-    messages: Vec<String>,
-}
-
-impl<T> ContentBuilder<T>
-where
-    T: hidden::Marker,
-{
-    pub fn new(event: Rc<T>) -> Self {
-        Self {
-            event: event,
-            messages: Vec::new(),
-        }
-    }
-}
-
-impl<T> ContentBuilder<T>
-where
-    T: TAssignee,
-{
-    pub fn assignees(mut self) -> ContentBuilder<T> {
-        let assignees: Vec<String> = self.event.assignees().into_iter().map(|a| a.md()).collect();
-        let msg = truncate_msg(assignees, 2);
-
-        // self.messages.append();
-        self.messages.push(msg);
-        self
-    }
-}
-
-impl<T> ContentBuilder<T>
-where
-    T: TIssue,
-{
-    pub fn issue(mut self) -> ContentBuilder<T> {
-        self.messages.push(self.event.issue().link_md());
-        self
-    }
-}
-impl<T> ContentBuilder<T>
-where
-    T: TLabel,
-{
-    pub fn labels(mut self) -> ContentBuilder<T> {
-        let labels = self.event.labels().into_iter().map(|l| l.md()).collect();
-        let msg = truncate_msg(labels, 2);
-        self.messages.push(msg);
-        self
-    }
-}
-impl<T> ContentBuilder<T>
-where
-    T: TPullRequest,
-{
-    pub fn pr(mut self) -> ContentBuilder<T> {
-        self.messages.push(self.event.pr().link_md());
-        self
-    }
-}
-
-impl<T> ContentBuilder<T>
-where
-    T: TRepository,
-{
-    pub fn repo(mut self) -> ContentBuilder<T> {
-        self.messages.push(self.event.repo().link_md());
-        self
-    }
-}
-
-impl<T> ContentBuilder<T> {
-    pub fn build_with_separator(self, separator: &str) -> (String, ContentBuilder<T>) {
-        let msg = self.messages.join(separator);
-        (msg, self.clean())
-    }
-
-    pub fn build(self) -> String {
-        let msg = self.messages.join(" ");
-        msg
-    }
-    pub fn build_trim(self) -> String {
-        let msg = self.messages.join("");
-        msg
-    }
-
-    pub fn build_lines(self) -> String {
-        let msg = self.messages.join("\n");
-        msg
-    }
-
-    pub fn clean(mut self) -> ContentBuilder<T> {
-        self.messages.clear();
-        self
-    }
-}
-
-fn truncate_msg(v: Vec<String>, limit: usize) -> String {
-    if v.len() <= limit {
-        v.into_iter().fold("".to_string(), |acc, x| acc + "," + &x)
-    } else {
-        v[0].clone() + &v[1] + &format!("...{} mores", v.len() - limit)
     }
 }

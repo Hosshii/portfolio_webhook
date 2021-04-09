@@ -1,9 +1,7 @@
+use crate::builder::ContentBuilder;
+use crate::builder::MessageBuilder;
 use crate::error::MyError;
-use crate::message::MessageBuilder;
-use crate::utils::{
-    ContentBuilder, EIssueComment, EIssues, EPullRequest, EPullRequestReview,
-    EPullRequestReviewComment, EPush,
-};
+use crate::utils::prelude::*;
 use crate::webhook::WebHook;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use github_webhook::event::{
@@ -17,24 +15,24 @@ pub async fn webhook(
     mut req: HttpRequest,
     hook: web::Data<WebHook>,
     body: String,
-) -> impl Responder {
+) -> Result<HttpResponse, MyError> {
     let result = hook.parse_and_authenticate(&mut req, &body);
 
     match result {
         Ok(event) => {
             match event {
                 Event::Issues(e) => {
-                    issue_handler(&hook, e).await;
+                    issue_handler(&hook, e).await?;
                 }
                 _ => unimplemented!(),
             }
 
-            HttpResponse::Ok().body("correctly parsed")
+            Ok(HttpResponse::Ok().body("correctly parsed"))
         }
         Err(e) => {
             println!("{}", e);
             println!("{:?}", e);
-            HttpResponse::BadRequest().body(e.to_string())
+            Ok(HttpResponse::BadRequest().body(e.to_string()))
         }
     }
 }
