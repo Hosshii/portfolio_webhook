@@ -14,7 +14,7 @@ const X_GITHUB_EVENT: &str = "X-Github-Event";
 const X_HUB_SIGNATURE: &str = "X-Hub-Signature-256";
 
 fn generate_signature<'a>(message: &'a str, secret: &'a str) -> Vec<u8> {
-    let key = hmac::Key::new(hmac::HMAC_SHA256, secret.as_bytes());
+    let key = hmac::Key::new(hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY, secret.as_bytes());
     let tag = hmac::sign(&key, message.as_bytes());
     tag.as_ref().to_vec()
 }
