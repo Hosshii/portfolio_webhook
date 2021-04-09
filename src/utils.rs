@@ -5,10 +5,14 @@ use github_webhook::event::{
     PullRequestReviewEvent, PushEvent,
 };
 
+mod hidden {
+    pub trait Marker {}
+}
+
 macro_rules! newtype {
     ( $($id:ident, $ty:ty),* ) => {
         $(
-            pub struct $id ($ty);
+            pub struct $id (pub $ty);
             impl std::ops::Deref for $id {
                 type Target = $ty;
                 fn deref(&self) -> &Self::Target {
@@ -21,6 +25,8 @@ macro_rules! newtype {
                     &mut self.0
                 }
             }
+
+            impl hidden::Marker for $id {}
         )*
     };
 }
@@ -347,7 +353,10 @@ pub struct ContentBuilder<T> {
     messages: Vec<String>,
 }
 
-impl<T> ContentBuilder<T> {
+impl<T> ContentBuilder<T>
+where
+    T: hidden::Marker,
+{
     pub fn new(event: T) -> Self {
         Self {
             event: Rc::new(event),
@@ -410,14 +419,17 @@ where
     }
 }
 
-// impl<T> MessageBuilder<T>
-// where
-//     T: TIssue,
-// {
-//     pub fn issue(self) -> MessageBuilder<T> {
-//         Self {}
-//     }
-// }
+impl<T> ContentBuilder<T> {
+    pub fn build(self) -> (String, ContentBuilder<T>) {
+        let msg = self.messages.join("\n");
+        (msg, self.clean())
+    }
+
+    pub fn clean(mut self) -> ContentBuilder<T> {
+        self.messages.clear();
+        self
+    }
+}
 
 fn truncate_msg(v: Vec<String>, limit: usize) -> String {
     if v.len() <= limit {
