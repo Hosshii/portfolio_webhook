@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use std::usize;
 
 use github_webhook::event::{
@@ -45,6 +44,19 @@ newtype! {
 //     };
 // }
 
+pub struct Issue {
+    num: u64,
+    title: String,
+    url: String,
+    assignees: Vec<String>,
+}
+
+impl Issue {
+    pub fn link_md(&self) -> String {
+        format!("[#{} {}]({})", self.num, self.title, self.url)
+    }
+}
+
 pub trait TIssue {
     fn issue(&self) -> Issue;
 }
@@ -90,6 +102,12 @@ pub struct Label {
     pub name: String,
     pub url: String,
 }
+
+impl Label {
+    pub fn md(&self) -> String {
+        format!("[{}]({})", self.name, self.url)
+    }
+}
 pub trait TLabel: TIssue {
     fn labels(&self) -> Vec<Label>;
 }
@@ -124,10 +142,11 @@ pub struct PullRequest {
 }
 
 impl PullRequest {
-    pub fn name_md(&self) -> String {
-        format!("[{}]({})", self.title, self.url)
+    fn link_md(&self) -> String {
+        format!("[#{} {}]({})", self.num, self.title, self.url)
     }
 }
+
 pub trait TPullRequest {
     fn pr(&self) -> PullRequest;
 }
@@ -173,6 +192,10 @@ pub struct Assignee {
 impl Assignee {
     pub fn new(name: impl Into<String>) -> Self {
         Self { name: name.into() }
+    }
+
+    pub fn md(&self) -> String {
+        self.name.clone()
     }
 }
 
@@ -246,6 +269,13 @@ pub struct Repository {
     owner: String,
     url: String,
 }
+
+impl Repository {
+    pub fn link_md(&self) -> String {
+        format!("[{}/{}]({})", self.owner, self.name, self.url)
+    }
+}
+
 pub trait TRepository {
     fn repo(&self) -> Repository;
 }
@@ -314,14 +344,70 @@ impl TRepository for EPullRequestReviewComment {
 
 pub struct MessageBuilder<T> {
     event: T,
-    issue: Option<Issue>,
+    messages: Vec<String>,
 }
 
-pub struct Issue {
-    num: u64,
-    title: String,
-    url: String,
-    assignees: Vec<String>,
+impl<T> MessageBuilder<T> {
+    pub fn new(event: T) -> Self {
+        Self {
+            event,
+            messages: Vec::new(),
+        }
+    }
+}
+
+impl<T> MessageBuilder<T>
+where
+    T: TAssignee,
+{
+    pub fn assignees(mut self) -> MessageBuilder<T> {
+        let assignees: Vec<String> = self.event.assignees().into_iter().map(|a| a.md()).collect();
+        let msg = truncate_msg(assignees, 2);
+
+        // self.messages.append();
+        self.messages.push(msg);
+        self
+    }
+}
+
+impl<T> MessageBuilder<T>
+where
+    T: TIssue,
+{
+    pub fn issue(mut self) -> MessageBuilder<T> {
+        self.messages.push(self.event.issue().link_md());
+        self
+    }
+}
+impl<T> MessageBuilder<T>
+where
+    T: TLabel,
+{
+    pub fn labels(mut self) -> MessageBuilder<T> {
+        let labels = self.event.labels().into_iter().map(|l| l.md()).collect();
+        let msg = truncate_msg(labels, 2);
+        self.messages.push(msg);
+        self
+    }
+}
+impl<T> MessageBuilder<T>
+where
+    T: TPullRequest,
+{
+    pub fn pr(mut self) -> MessageBuilder<T> {
+        self.messages.push(self.event.pr().link_md());
+        self
+    }
+}
+
+impl<T> MessageBuilder<T>
+where
+    T: TRepository,
+{
+    pub fn repo(mut self) -> MessageBuilder<T> {
+        self.messages.push(self.event.repo().link_md());
+        self
+    }
 }
 
 // impl<T> MessageBuilder<T>
@@ -332,3 +418,11 @@ pub struct Issue {
 //         Self {}
 //     }
 // }
+
+fn truncate_msg(v: Vec<String>, limit: usize) -> String {
+    if v.len() <= limit {
+        v.into_iter().fold("".to_string(), |acc, x| acc + "," + &x)
+    } else {
+        v[0].clone() + &v[1] + &format!("...{} mores", v.len() - limit)
+    }
+}
