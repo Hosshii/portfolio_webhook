@@ -1,7 +1,5 @@
-use std::{rc::Rc, usize};
-
 use github_webhook::event::{
-    self, Event, IssueCommentEvent, IssuesEvent, PullRequestEvent, PullRequestReviewCommentEvent,
+    self, IssueCommentEvent, IssuesEvent, PullRequestEvent, PullRequestReviewCommentEvent,
     PullRequestReviewEvent, PushEvent,
 };
 
@@ -57,7 +55,7 @@ pub mod issue {
         num: u64,
         title: String,
         url: String,
-        assignees: Vec<String>,
+        _assignees: Vec<String>,
     }
 
     impl Issue {
@@ -73,7 +71,7 @@ pub mod issue {
     impl TIssue for EIssueComment {
         fn issue(&self) -> Issue {
             Issue {
-                assignees: self
+                _assignees: self
                     .0
                     .issue
                     .assignees
@@ -90,7 +88,7 @@ pub mod issue {
     impl TIssue for EIssues {
         fn issue(&self) -> Issue {
             Issue {
-                assignees: self
+                _assignees: self
                     .0
                     .issue
                     .assignees

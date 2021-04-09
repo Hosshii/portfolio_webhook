@@ -26,6 +26,12 @@ impl fmt::Display for Message {
     }
 }
 
+impl AsRef<String> for Message {
+    fn as_ref(&self) -> &String {
+        self
+    }
+}
+
 pub struct MessageBuilder<Title, Footer> {
     title: Title,
     msgs: Vec<String>,

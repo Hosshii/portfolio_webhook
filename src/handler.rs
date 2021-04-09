@@ -52,7 +52,7 @@ async fn issue_handler(hook: &WebHook, event: IssuesEvent) -> Result<HttpRespons
 
     let message = MessageBuilder::new().title(title).repo(repo).build();
 
-    let res = hook.post_message(&message).await?;
+    let _ = hook.post_message(message.as_ref()).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }
@@ -71,7 +71,7 @@ async fn issue_comment_handler(
 
     let message = MessageBuilder::new().title(title).repo(repo).build();
 
-    let res = hook.post_message(&message).await?;
+    let _ = hook.post_message(message.as_ref()).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }
@@ -91,7 +91,7 @@ async fn push_handler(hook: &WebHook, event: PushEvent) -> Result<HttpResponse, 
         .repo(repo)
         .build();
 
-    let res = hook.post_message(&message).await?;
+    let _ = hook.post_message(message.as_ref()).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }
@@ -107,7 +107,7 @@ async fn pull_request_handler(
 
     let message = MessageBuilder::new().title(title).repo(repo).build();
 
-    let res = hook.post_message(&message).await?;
+    let _ = hook.post_message(message.as_ref()).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }
@@ -123,7 +123,7 @@ async fn pull_request_review_handler(
 
     let message = MessageBuilder::new().title(title).repo(repo).build();
 
-    let res = hook.post_message(&message).await?;
+    let _ = hook.post_message(message.as_ref()).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }
@@ -139,7 +139,7 @@ async fn pull_request_review_comment_handler(
 
     let message = MessageBuilder::new().title(title).repo(repo).build();
 
-    let res = hook.post_message(&message).await?;
+    let _ = hook.post_message(message.as_ref()).await?;
 
     Ok(HttpResponse::Ok().body("successfully posted"))
 }

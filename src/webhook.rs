@@ -77,16 +77,26 @@ impl WebHook {
     }
 
     pub async fn post_message(&self, message: &str) -> Result<Response, MyError> {
+    pub async fn post_message(&self, message: impl Into<String>) -> Result<Response, MyError> {
+        let message = message.into();
         let url = &format!("https://q.trap.jp/api/v3/webhooks/{}", self.traq_webhook_id);
         let client = reqwest::Client::new();
 
-        let sig = generate_signature(message, &self.traq_secret).encode_hex::<String>();
+        let sig = generate_signature(&message, &self.traq_secret).encode_hex::<String>();
         let mut headers = HeaderMap::new();
-        headers
-            .insert("X-TRAQ_Signature", sig.parse().unwrap())
-            .unwrap();
+        headers.insert("X-TRAQ_Signature", sig.parse().unwrap());
+        headers.insert(
+            reqwest::header::CONTENT_TYPE,
+            "text/plain; charset=utf-8".parse().unwrap(),
+        );
 
         let res = client.post(url).headers(headers).send().await?;
+        let res = client
+            .post(url)
+            .headers(headers)
+            .body(message.clone())
+            .send()
+            .await?;
         info!(
             "Message sent to {}, message: {}, response: {:?}",
             url, message, res

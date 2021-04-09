@@ -4,15 +4,13 @@ use actix_web::{web, App, HttpServer};
 use portfolio_webhook::handler;
 use portfolio_webhook::webhook::WebHook;
 
-#[macro_use]
-extern crate log;
-
 const ENV_TRAQ_WEBHOOK_ID: &str = "TRAQ_WEBHOOK_ID";
 const ENV_TRAQ_WEBHOOK_SECRET: &str = "TRAQ_WEBHOOK_SECRET";
 const ENV_GITHUB_WEBHOOK_SECRET: &str = "GITHUB_WEBHOOK_SECRET";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    env::set_var("RUST_LOG", "info");
     env_logger::init();
 
     let traq_webhook_id = env::var(ENV_TRAQ_WEBHOOK_ID)

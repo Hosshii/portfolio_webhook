@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 serde_json = "1.0.64"
 github_webhook = { git = "https://github.com/hosshii/github_webhook.git", branch = "main" }
-actix-web = "3.3.2"
+actix-web = "4.0.0-beta.1"
 ring = "0.16.20"
 hex = "0.4.3"
 anyhow = "1.0.40"
