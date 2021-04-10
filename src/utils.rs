@@ -451,7 +451,7 @@ pub mod commit {
     use super::*;
 
     pub struct Commit {
-        committer: String,
+        author: String,
         time: String,
         message: String,
         id: String,
@@ -463,7 +463,7 @@ pub mod commit {
             let id: String = self.id.chars().take(7).collect();
             format!(
                 "[{}]({}) - {} {} {}",
-                id, self.url, self.message, self.time, self.committer
+                id, self.url, self.message, self.time, self.author
             )
         }
     }
@@ -482,7 +482,7 @@ pub mod commit {
                     .map(|time| time.format("%a %b %e %T %Y %z").to_string())
                     .unwrap_or("time parse error".to_string());
                 commits.push(Commit {
-                    committer: commit.committer.name.clone(),
+                    author: commit.author.name.clone(),
                     time,
                     message: commit.message.clone(),
                     id: commit.id.clone(),
