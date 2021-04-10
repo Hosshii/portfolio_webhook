@@ -117,16 +117,21 @@ async fn pull_request_review_handler(
     hook: &WebHook,
     event: PullRequestReviewEvent,
 ) -> Result<HttpResponse, MyError> {
-    let event = Rc::new(EPullRequestReview(event));
+    match event.review.state.as_str() {
+        "approved" | "commented" | "changes_requested" => {
+            let event = Rc::new(EPullRequestReview(event));
 
-    let title = ContentBuilder::new(Rc::clone(&event)).pr().action().build();
-    let repo = ContentBuilder::new(Rc::clone(&event)).repo().build();
+            let title = ContentBuilder::new(Rc::clone(&event)).pr().action().build();
+            let repo = ContentBuilder::new(Rc::clone(&event)).repo().build();
 
-    let message = MessageBuilder::new().title(title).repo(repo).build();
+            let message = MessageBuilder::new().title(title).repo(repo).build();
 
-    let _ = hook.post_message(message.as_ref()).await?;
+            let _ = hook.post_message(message.as_ref()).await?;
 
-    Ok(HttpResponse::Ok().body("successfully posted"))
+            Ok(HttpResponse::Ok().body("successfully posted"))
+        }
+        _ => Ok(HttpResponse::Ok().body("successfully accepted, but not posted")),
+    }
 }
 
 async fn pull_request_review_comment_handler(

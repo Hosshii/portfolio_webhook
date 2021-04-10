@@ -193,6 +193,16 @@ where
     }
 }
 
+impl<T> ContentBuilder<T>
+where
+    T: TComment,
+{
+    pub fn comment(mut self) -> ContentBuilder<T> {
+        self.messages.push(self.event.comment().comment());
+        self
+    }
+}
+
 impl<T> ContentBuilder<T> {
     pub fn build_with_separator(self, separator: &str) -> (String, ContentBuilder<T>) {
         let msg = self.messages.join(separator);

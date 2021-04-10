@@ -9,8 +9,8 @@ pub(crate) mod hidden {
 
 pub mod prelude {
     pub use super::{
-        action::TAction, assignee::TAssignee, commit::TCommit, issue::TIssue, label::TLabel,
-        pull_request::TPullRequest, repository::TRepository,
+        action::TAction, assignee::TAssignee, comment::TComment, commit::TCommit, issue::TIssue,
+        label::TLabel, pull_request::TPullRequest, repository::TRepository,
     };
     pub use super::{
         EIssueComment, EIssues, EPullRequest, EPullRequestReview, EPullRequestReviewComment, EPush,
@@ -483,6 +483,38 @@ pub mod commit {
                 });
             }
             commits
+        }
+    }
+}
+
+pub mod comment {
+    use super::*;
+
+    pub struct Comment {
+        comment: String,
+        sender: String,
+    }
+
+    impl Comment {
+        pub fn comment(&self) -> String {
+            self.comment.clone()
+        }
+
+        pub fn comment_with_sender(&self) -> String {
+            format!("{}: {}", self.sender, self.comment)
+        }
+    }
+
+    pub trait TComment {
+        fn comment(&self) -> Comment;
+    }
+
+    impl TComment for EPullRequestReview {
+        fn comment(&self) -> Comment {
+            Comment {
+                comment: self.review.body.as_ref().unwrap_or(&"".to_string()).clone(),
+                sender: self.sender.login.clone(),
+            }
         }
     }
 }
