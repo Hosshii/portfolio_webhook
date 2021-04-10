@@ -10,7 +10,7 @@ pub(crate) mod hidden {
 pub mod prelude {
     pub use super::{
         action::TAction, assignee::TAssignee, comment::TComment, commit::TCommit, issue::TIssue,
-        label::TLabel, pull_request::TPullRequest, repository::TRepository,
+        label::TLabel, pull_request::TPullRequest, repository::TRepository, review::TReview,
     };
     pub use super::{
         EIssueComment, EIssues, EPullRequest, EPullRequestReview, EPullRequestReviewComment, EPush,
@@ -556,6 +556,40 @@ pub mod comment {
                 comment: self.comment.body.clone(),
                 sender: self.sender.login.clone(),
             })
+        }
+    }
+}
+
+pub mod review {
+    use super::*;
+
+    pub struct Review {
+        _comment: String,
+        _reviewer: String,
+        url: String,
+    }
+
+    impl Review {
+        pub fn url(&self) -> String {
+            self.url.clone()
+        }
+
+        pub fn review(&self, title: impl Into<String>) -> String {
+            format!("[{}]({})", title.into(), self.url)
+        }
+    }
+
+    pub trait TReview {
+        fn review(&self) -> Review;
+    }
+
+    impl TReview for EPullRequestReviewComment {
+        fn review(&self) -> Review {
+            Review {
+                _comment: self.comment.body.clone(),
+                _reviewer: self.sender.login.clone(),
+                url: self.comment.html_url.clone(),
+            }
         }
     }
 }

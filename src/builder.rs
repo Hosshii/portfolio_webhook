@@ -118,6 +118,14 @@ where
         }
     }
 
+    pub fn msg(mut self, msg: impl Into<String>) -> Self {
+        self.messages.push(msg.into());
+        Self {
+            event: self.event,
+            messages: self.messages,
+        }
+    }
+
     pub fn build_with_separator(self, separator: &str) -> (String, ContentBuilder<T>) {
         let msg = self.messages.join(separator);
         (msg, self.clean())
@@ -236,6 +244,22 @@ where
         if let Some(comment) = self.event.comment() {
             self.messages.push(comment.comment());
         }
+        self
+    }
+}
+
+impl<T> ContentBuilder<T>
+where
+    T: TReview,
+{
+    pub fn review_url(mut self) -> ContentBuilder<T> {
+        self.messages.push(self.event.review().url());
+        self
+    }
+
+    pub fn review_md(mut self) -> ContentBuilder<T> {
+        self.messages
+            .push(self.event.review().review("Review Comment"));
         self
     }
 }

@@ -145,8 +145,11 @@ async fn pull_request_review_handler(
         "approved" | "commented" | "changes_requested" => {
             let event = Rc::new(EPullRequestReview(event));
 
-            let title = ContentBuilder::new(Rc::clone(&event)).pr().action().build();
-            let title = title + "Pull Request";
+            let title = ContentBuilder::new(Rc::clone(&event))
+                .msg("Pull Request")
+                .pr()
+                .action()
+                .build();
 
             let msg = ContentBuilder::new(Rc::clone(&event))
                 .comment()
@@ -175,7 +178,10 @@ async fn pull_request_review_comment_handler(
 ) -> Result<HttpResponse, MyError> {
     let event = Rc::new(EPullRequestReviewComment(event));
 
-    let title = ContentBuilder::new(Rc::clone(&event)).pr().action().build();
+    let title = ContentBuilder::new(Rc::clone(&event))
+        .review_md()
+        .action()
+        .build();
     let msg = ContentBuilder::new(Rc::clone(&event))
         .comment()
         .assignees()
