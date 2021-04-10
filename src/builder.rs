@@ -54,6 +54,7 @@ impl MessageBuilder<String, String> {
 
         let mut buf = String::new();
         writeln!(buf, "### {}", self.title).expect("buf error");
+        writeln!(buf, "---").expect("buf error");
 
         for m in self.msgs {
             writeln!(buf, "{}", m).expect("buf error");
@@ -115,6 +116,40 @@ where
             event: event,
             messages: Vec::new(),
         }
+    }
+
+    pub fn build_with_separator(self, separator: &str) -> (String, ContentBuilder<T>) {
+        let msg = self.messages.join(separator);
+        (msg, self.clean())
+    }
+
+    pub fn build(self) -> String {
+        let msg = self.messages.join(" ");
+        msg
+    }
+    pub fn build_trim(self) -> String {
+        let msg = self.messages.join("");
+        msg
+    }
+
+    pub fn build_lines(self) -> String {
+        let msg = self.messages.join("\n");
+        msg
+    }
+
+    pub fn take(self) -> Vec<String> {
+        self.messages
+    }
+
+    pub fn clean(mut self) -> ContentBuilder<T> {
+        self.messages.clear();
+        self
+    }
+
+    pub fn group(mut self, f: fn(_self: ContentBuilder<T>) -> String) -> ContentBuilder<T> {
+        self.messages
+            .push(f(ContentBuilder::new(Rc::clone(&self.event))));
+        self
     }
 }
 
@@ -198,37 +233,9 @@ where
     T: TComment,
 {
     pub fn comment(mut self) -> ContentBuilder<T> {
-        self.messages.push(self.event.comment().comment());
-        self
-    }
-}
-
-impl<T> ContentBuilder<T> {
-    pub fn build_with_separator(self, separator: &str) -> (String, ContentBuilder<T>) {
-        let msg = self.messages.join(separator);
-        (msg, self.clean())
-    }
-
-    pub fn build(self) -> String {
-        let msg = self.messages.join(" ");
-        msg
-    }
-    pub fn build_trim(self) -> String {
-        let msg = self.messages.join("");
-        msg
-    }
-
-    pub fn build_lines(self) -> String {
-        let msg = self.messages.join("\n");
-        msg
-    }
-
-    pub fn take(self) -> Vec<String> {
-        self.messages
-    }
-
-    pub fn clean(mut self) -> ContentBuilder<T> {
-        self.messages.clear();
+        if let Some(comment) = self.event.comment() {
+            self.messages.push(comment.comment());
+        }
         self
     }
 }

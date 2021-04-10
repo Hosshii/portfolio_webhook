@@ -119,7 +119,7 @@ pub mod label {
             format!("[{}]({})", self.name, self.url)
         }
     }
-    pub trait TLabel: TIssue {
+    pub trait TLabel {
         fn labels(&self) -> Vec<Label>;
     }
 
@@ -142,6 +142,13 @@ pub mod label {
     impl TLabel for EIssues {
         fn labels(&self) -> Vec<Label> {
             self.0.issue.labels.iter().map(|l| l.into()).collect()
+        }
+    }
+
+    impl TLabel for EPullRequest {
+        fn labels(&self) -> Vec<Label> {
+            // todo
+            Vec::new()
         }
     }
 }
@@ -358,9 +365,9 @@ pub mod action {
     impl Action {
         pub fn md(&self) -> String {
             if let Some(ref assignee) = self.assignee {
-                format!("{} to {} by {}", self.action, assignee, self.sender)
+                format!("{} to `{}` by `{}`", self.action, assignee, self.sender)
             } else {
-                format!("{} by {}", self.action, self.sender)
+                format!("{} by `{}`", self.action, self.sender)
             }
         }
     }
@@ -506,15 +513,51 @@ pub mod comment {
     }
 
     pub trait TComment {
-        fn comment(&self) -> Comment;
+        fn comment(&self) -> Option<Comment>;
+    }
+
+    impl TComment for EIssues {
+        fn comment(&self) -> Option<Comment> {
+            self.issue.body.as_ref().map(|body| Comment {
+                comment: body.clone(),
+                sender: self.sender.login.clone(),
+            })
+        }
+    }
+
+    impl TComment for EIssueComment {
+        fn comment(&self) -> Option<Comment> {
+            Some(Comment {
+                comment: self.comment.body.clone(),
+                sender: self.sender.login.clone(),
+            })
+        }
+    }
+
+    impl TComment for EPullRequest {
+        fn comment(&self) -> Option<Comment> {
+            self.pull_request.body.as_ref().map(|body| Comment {
+                comment: body.clone(),
+                sender: self.sender.login.clone(),
+            })
+        }
     }
 
     impl TComment for EPullRequestReview {
-        fn comment(&self) -> Comment {
-            Comment {
-                comment: self.review.body.as_ref().unwrap_or(&"".to_string()).clone(),
+        fn comment(&self) -> Option<Comment> {
+            self.review.body.as_ref().map(|body| Comment {
+                comment: body.clone(),
                 sender: self.sender.login.clone(),
-            }
+            })
+        }
+    }
+
+    impl TComment for EPullRequestReviewComment {
+        fn comment(&self) -> Option<Comment> {
+            Some(Comment {
+                comment: self.comment.body.clone(),
+                sender: self.sender.login.clone(),
+            })
         }
     }
 }
