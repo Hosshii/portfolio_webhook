@@ -180,7 +180,7 @@ pub mod pull_request {
             PullRequest {
                 num: self.pull_request.number,
                 title: self.pull_request.title.clone(),
-                url: self.pull_request.url.clone(),
+                url: self.pull_request.html_url.clone(),
             }
         }
     }
@@ -190,7 +190,7 @@ pub mod pull_request {
             PullRequest {
                 num: self.pull_request.number,
                 title: self.pull_request.title.clone(),
-                url: self.pull_request.url.clone(),
+                url: self.pull_request.html_url.clone(),
             }
         }
     }
@@ -291,7 +291,7 @@ pub mod repository {
             Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.login.clone(),
-                url: self.repository.url.clone(),
+                url: self.repository.html_url.clone(),
             }
         }
     }
@@ -301,7 +301,7 @@ pub mod repository {
             Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.login.clone(),
-                url: self.repository.url.clone(),
+                url: self.repository.html_url.clone(),
             }
         }
     }
@@ -311,7 +311,7 @@ pub mod repository {
             Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.login.clone(),
-                url: self.repository.url.clone(),
+                url: self.repository.html_url.clone(),
             }
         }
     }
@@ -321,7 +321,7 @@ pub mod repository {
             Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.login.clone(),
-                url: self.repository.url.clone(),
+                url: self.repository.html_url.clone(),
             }
         }
     }
@@ -331,7 +331,7 @@ pub mod repository {
             Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.login.clone(),
-                url: self.repository.url.clone(),
+                url: self.repository.html_url.clone(),
             }
         }
     }
@@ -340,7 +340,7 @@ pub mod repository {
             Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.name.clone(),
-                url: self.repository.url.clone(),
+                url: self.repository.html_url.clone(),
             }
         }
     }
