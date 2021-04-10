@@ -104,8 +104,6 @@ pub mod issue {
 }
 
 pub mod label {
-
-    use super::issue::TIssue;
     use super::*;
     #[derive(Debug, Clone)]
     pub struct Label {
