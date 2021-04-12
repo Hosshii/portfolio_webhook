@@ -399,8 +399,17 @@ pub mod action {
     impl TAction for EPullRequest {
         fn action(&self) -> Action {
             let assignee = self.pull_request.assignee.as_ref().map(|v| v.login.clone());
+            let action = if let event::PullRequestAction::Closed = self.action {
+                if self.pull_request.merged {
+                    "Merged".to_owned()
+                } else {
+                    "Closed".to_owned()
+                }
+            } else {
+                format!("{:?}", self.action)
+            };
             Action {
-                action: format!("{:?}", self.action),
+                action,
                 sender: self.sender.login.clone(),
                 assignee,
             }
