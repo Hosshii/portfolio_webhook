@@ -118,7 +118,11 @@ async fn pull_request_handler(
 ) -> Result<HttpResponse, MyError> {
     let event = Rc::new(EPullRequest(event));
 
-    let title = ContentBuilder::new(Rc::clone(&event)).pr().action().build();
+    let title = ContentBuilder::new(Rc::clone(&event))
+        .msg("Pull Request")
+        .pr()
+        .action()
+        .build();
     let msg = ContentBuilder::new(Rc::clone(&event))
         .comment()
         .assignees()
