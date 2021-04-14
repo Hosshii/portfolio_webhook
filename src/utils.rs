@@ -456,11 +456,16 @@ pub mod action {
 
     impl TAction for EPush {
         fn action(&self) -> Option<Action> {
+            if self.commits.len() < 1 {
+                return None;
+            }
+
             let action = if self.commits.len() > 1 {
-                format!("{} commits pushed", self.commits.len())
+                format!("{} commits pushed to {}", self.commits.len(), self._ref)
             } else {
-                format!("{} commit pushed", self.commits.len())
+                format!("{} commit pushed to {}", self.commits.len(), self._ref)
             };
+
             let action = Action {
                 action: action,
                 sender: self.sender.login.clone(),
