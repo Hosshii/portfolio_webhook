@@ -49,6 +49,7 @@ async fn issue_handler(hook: &WebHook, event: IssuesEvent) -> Result<HttpRespons
         .issue()
         .action()
         .build();
+
     let msg = ContentBuilder::new(Rc::clone(&event)).comment().build();
     let repo = ContentBuilder::new(Rc::clone(&event)).repo().build();
 
@@ -58,37 +59,38 @@ async fn issue_handler(hook: &WebHook, event: IssuesEvent) -> Result<HttpRespons
         .repo(repo)
         .build();
 
-    let _ = hook.post_message(message.as_ref()).await?;
-
-    Ok(HttpResponse::Ok().body("successfully posted"))
+    if let Some(message) = message {
+        let _ = hook.post_message(message.as_ref()).await?;
+        Ok(HttpResponse::Ok().body("successfully posted"))
+    } else {
+        Ok(HttpResponse::Ok().body("successfully accepted, but not posted"))
+    }
 }
 
 async fn issue_comment_handler(
     hook: &WebHook,
     event: IssueCommentEvent,
 ) -> Result<HttpResponse, MyError> {
-    use github_webhook::event::IssueCommentAction;
-    match &event.action {
-        IssueCommentAction::Created | IssueCommentAction::Deleted | IssueCommentAction::Edited => {
-            let event = Rc::new(EIssueComment(event));
+    let event = Rc::new(EIssueComment(event));
 
-            let title = ContentBuilder::new(Rc::clone(&event))
-                .issue()
-                .action()
-                .build();
-            let msg = ContentBuilder::new(Rc::clone(&event)).comment().build();
-            let repo = ContentBuilder::new(Rc::clone(&event)).repo().build();
+    let title = ContentBuilder::new(Rc::clone(&event))
+        .issue()
+        .action()
+        .build();
+    let msg = ContentBuilder::new(Rc::clone(&event)).comment().build();
+    let repo = ContentBuilder::new(Rc::clone(&event)).repo().build();
 
-            let message = MessageBuilder::new()
-                .title(title)
-                .msg(msg)
-                .repo(repo)
-                .build();
+    let message = MessageBuilder::new()
+        .title(title)
+        .msg(msg)
+        .repo(repo)
+        .build();
 
-            let _ = hook.post_message(message.as_ref()).await?;
-
-            Ok(HttpResponse::Ok().body("successfully posted"))
-        }
+    if let Some(message) = message {
+        let _ = hook.post_message(message.as_ref()).await?;
+        Ok(HttpResponse::Ok().body("successfully posted"))
+    } else {
+        Ok(HttpResponse::Ok().body("successfully accepted, but not posted"))
     }
 }
 
@@ -107,9 +109,12 @@ async fn push_handler(hook: &WebHook, event: PushEvent) -> Result<HttpResponse, 
         .repo(repo)
         .build();
 
-    let _ = hook.post_message(message.as_ref()).await?;
-
-    Ok(HttpResponse::Ok().body("successfully posted"))
+    if let Some(message) = message {
+        let _ = hook.post_message(message.as_ref()).await?;
+        Ok(HttpResponse::Ok().body("successfully posted"))
+    } else {
+        Ok(HttpResponse::Ok().body("successfully accepted, but not posted"))
+    }
 }
 
 async fn pull_request_handler(
@@ -140,9 +145,12 @@ async fn pull_request_handler(
                 .repo(repo)
                 .build();
 
-            let _ = hook.post_message(message.as_ref()).await?;
-
-            Ok(HttpResponse::Ok().body("successfully posted"))
+            if let Some(message) = message {
+                let _ = hook.post_message(message.as_ref()).await?;
+                Ok(HttpResponse::Ok().body("successfully posted"))
+            } else {
+                Ok(HttpResponse::Ok().body("successfully accepted, but not posted"))
+            }
         }
         _ => Ok(HttpResponse::Ok().body("successfully accepted, but not posted")),
     }
@@ -175,9 +183,12 @@ async fn pull_request_review_handler(
                 .repo(repo)
                 .build();
 
-            let _ = hook.post_message(message.as_ref()).await?;
-
-            Ok(HttpResponse::Ok().body("successfully posted"))
+            if let Some(message) = message {
+                let _ = hook.post_message(message.as_ref()).await?;
+                Ok(HttpResponse::Ok().body("successfully posted"))
+            } else {
+                Ok(HttpResponse::Ok().body("successfully accepted, but not posted"))
+            }
         }
         _ => Ok(HttpResponse::Ok().body("successfully accepted, but not posted")),
     }
@@ -205,9 +216,12 @@ async fn pull_request_review_comment_handler(
         .repo(repo)
         .build();
 
-    let _ = hook.post_message(message.as_ref()).await?;
-
-    Ok(HttpResponse::Ok().body("successfully posted"))
+    if let Some(message) = message {
+        let _ = hook.post_message(message.as_ref()).await?;
+        Ok(HttpResponse::Ok().body("successfully posted"))
+    } else {
+        Ok(HttpResponse::Ok().body("successfully accepted, but not posted"))
+    }
 }
 
 async fn ping_handler() -> Result<HttpResponse, MyError> {

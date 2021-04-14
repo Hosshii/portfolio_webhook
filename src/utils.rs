@@ -49,7 +49,7 @@ newtype! {
 }
 
 pub mod issue {
-    use super::*;
+    use super::{hidden::Marker, *};
 
     pub struct Issue {
         num: u64,
@@ -64,13 +64,13 @@ pub mod issue {
         }
     }
 
-    pub trait TIssue {
-        fn issue(&self) -> Issue;
+    pub trait TIssue: Marker {
+        fn issue(&self) -> Option<Issue>;
     }
 
     impl TIssue for EIssueComment {
-        fn issue(&self) -> Issue {
-            Issue {
+        fn issue(&self) -> Option<Issue> {
+            let issue = Issue {
                 _assignees: self
                     .0
                     .issue
@@ -81,13 +81,14 @@ pub mod issue {
                 num: self.0.issue.number,
                 url: self.0.issue.html_url.clone(),
                 title: self.0.issue.title.clone(),
-            }
+            };
+            Some(issue)
         }
     }
 
     impl TIssue for EIssues {
-        fn issue(&self) -> Issue {
-            Issue {
+        fn issue(&self) -> Option<Issue> {
+            let issue = Issue {
                 _assignees: self
                     .0
                     .issue
@@ -98,13 +99,14 @@ pub mod issue {
                 num: self.0.issue.number,
                 url: self.0.issue.html_url.clone(),
                 title: self.0.issue.title.clone(),
-            }
+            };
+            Some(issue)
         }
     }
 }
 
 pub mod label {
-    use super::*;
+    use super::{hidden::Marker, *};
     #[derive(Debug, Clone)]
     pub struct Label {
         pub color: String,
@@ -117,7 +119,7 @@ pub mod label {
             format!("[{}]({})", self.name, self.url)
         }
     }
-    pub trait TLabel {
+    pub trait TLabel: Marker {
         fn labels(&self) -> Vec<Label>;
     }
 
@@ -152,7 +154,7 @@ pub mod label {
 }
 
 pub mod pull_request {
-    use super::*;
+    use super::{hidden::Marker, *};
 
     pub struct PullRequest {
         num: u64,
@@ -166,43 +168,46 @@ pub mod pull_request {
         }
     }
 
-    pub trait TPullRequest {
-        fn pr(&self) -> PullRequest;
+    pub trait TPullRequest: Marker {
+        fn pr(&self) -> Option<PullRequest>;
     }
 
     impl TPullRequest for EPullRequest {
-        fn pr(&self) -> PullRequest {
-            PullRequest {
+        fn pr(&self) -> Option<PullRequest> {
+            let pr = PullRequest {
                 num: self.number,
                 title: self.0.pull_request.title.clone(),
                 url: self.0.pull_request.url.clone(),
-            }
+            };
+            Some(pr)
         }
     }
 
     impl TPullRequest for EPullRequestReview {
-        fn pr(&self) -> PullRequest {
-            PullRequest {
+        fn pr(&self) -> Option<PullRequest> {
+            let pr = PullRequest {
                 num: self.pull_request.number,
                 title: self.pull_request.title.clone(),
                 url: self.pull_request.html_url.clone(),
-            }
+            };
+            Some(pr)
         }
     }
 
     impl TPullRequest for EPullRequestReviewComment {
-        fn pr(&self) -> PullRequest {
-            PullRequest {
+        fn pr(&self) -> Option<PullRequest> {
+            let pr = PullRequest {
                 num: self.pull_request.number,
                 title: self.pull_request.title.clone(),
                 url: self.pull_request.html_url.clone(),
-            }
+            };
+            Some(pr)
         }
     }
 }
 
 pub mod assignee {
-    use super::*;
+    use super::{hidden::Marker, *};
 
     pub struct Assignee {
         pub name: String,
@@ -217,7 +222,7 @@ pub mod assignee {
         }
     }
 
-    pub trait TAssignee {
+    pub trait TAssignee: Marker {
         fn assignees(&self) -> Vec<Assignee>;
     }
 
@@ -273,7 +278,7 @@ pub mod assignee {
 }
 
 pub mod repository {
-    use super::*;
+    use super::{hidden::Marker, *};
 
     pub struct Repository {
         name: String,
@@ -287,72 +292,78 @@ pub mod repository {
         }
     }
 
-    pub trait TRepository {
-        fn repo(&self) -> Repository;
+    pub trait TRepository: Marker {
+        fn repo(&self) -> Option<Repository>;
     }
 
     impl TRepository for EIssues {
-        fn repo(&self) -> Repository {
-            Repository {
+        fn repo(&self) -> Option<Repository> {
+            let repo = Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.login.clone(),
                 url: self.repository.html_url.clone(),
-            }
+            };
+            Some(repo)
         }
     }
 
     impl TRepository for EIssueComment {
-        fn repo(&self) -> Repository {
-            Repository {
+        fn repo(&self) -> Option<Repository> {
+            let repo = Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.login.clone(),
                 url: self.repository.html_url.clone(),
-            }
+            };
+            Some(repo)
         }
     }
 
     impl TRepository for EPullRequest {
-        fn repo(&self) -> Repository {
-            Repository {
+        fn repo(&self) -> Option<Repository> {
+            let repo = Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.login.clone(),
                 url: self.repository.html_url.clone(),
-            }
+            };
+            Some(repo)
         }
     }
 
     impl TRepository for EPullRequestReview {
-        fn repo(&self) -> Repository {
-            Repository {
+        fn repo(&self) -> Option<Repository> {
+            let repo = Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.login.clone(),
                 url: self.repository.html_url.clone(),
-            }
+            };
+            Some(repo)
         }
     }
 
     impl TRepository for EPullRequestReviewComment {
-        fn repo(&self) -> Repository {
-            Repository {
+        fn repo(&self) -> Option<Repository> {
+            let repo = Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.login.clone(),
                 url: self.repository.html_url.clone(),
-            }
+            };
+            Some(repo)
         }
     }
     impl TRepository for EPush {
-        fn repo(&self) -> Repository {
-            Repository {
+        fn repo(&self) -> Option<Repository> {
+            let repo = Repository {
                 name: self.repository.name.clone(),
                 owner: self.repository.owner.name.clone(),
                 url: self.repository.html_url.clone(),
-            }
+            };
+            Some(repo)
         }
     }
 }
 
 pub mod action {
-    use super::*;
+    use super::{hidden::Marker, *};
 
     pub struct Action {
         action: String,
@@ -370,34 +381,36 @@ pub mod action {
         }
     }
 
-    pub trait TAction {
-        fn action(&self) -> Action;
+    pub trait TAction: Marker {
+        fn action(&self) -> Option<Action>;
     }
 
     impl TAction for EIssues {
-        fn action(&self) -> Action {
+        fn action(&self) -> Option<Action> {
             let assignee = self.issue.assignee.as_ref().map(|v| v.login.clone());
-            Action {
+            let action = Action {
                 action: format!("{:?}", self.action),
                 sender: self.sender.login.clone(),
                 assignee,
-            }
+            };
+            Some(action)
         }
     }
 
     impl TAction for EIssueComment {
-        fn action(&self) -> Action {
+        fn action(&self) -> Option<Action> {
             let assignee = self.issue.assignee.as_ref().map(|v| v.login.clone());
-            Action {
+            let action = Action {
                 action: format!("{:?}", self.action),
                 sender: self.sender.login.clone(),
                 assignee,
-            }
+            };
+            Some(action)
         }
     }
 
     impl TAction for EPullRequest {
-        fn action(&self) -> Action {
+        fn action(&self) -> Option<Action> {
             let assignee = self.pull_request.assignee.as_ref().map(|v| v.login.clone());
             let action = if let event::PullRequestAction::Closed = self.action {
                 if self.pull_request.merged {
@@ -408,54 +421,58 @@ pub mod action {
             } else {
                 format!("{:?}", self.action)
             };
-            Action {
+            let action = Action {
                 action,
                 sender: self.sender.login.clone(),
                 assignee,
-            }
+            };
+            Some(action)
         }
     }
 
     impl TAction for EPullRequestReview {
-        fn action(&self) -> Action {
+        fn action(&self) -> Option<Action> {
             let assignee = self.pull_request.assignee.as_ref().map(|v| v.login.clone());
-            Action {
+            let action = Action {
                 action: format!("{:?}", self.action),
                 sender: self.sender.login.clone(),
                 assignee,
-            }
+            };
+            Some(action)
         }
     }
 
     impl TAction for EPullRequestReviewComment {
-        fn action(&self) -> Action {
+        fn action(&self) -> Option<Action> {
             let assignee = self.pull_request.assignee.as_ref().map(|v| v.login.clone());
-            Action {
+            let action = Action {
                 action: format!("{:?}", self.action),
                 sender: self.sender.login.clone(),
                 assignee,
-            }
+            };
+            Some(action)
         }
     }
 
     impl TAction for EPush {
-        fn action(&self) -> Action {
+        fn action(&self) -> Option<Action> {
             let action = if self.commits.len() > 1 {
                 format!("{} commits pushed", self.commits.len())
             } else {
                 format!("{} commit pushed", self.commits.len())
             };
-            Action {
+            let action = Action {
                 action: action,
                 sender: self.sender.login.clone(),
                 assignee: None,
-            }
+            };
+            Some(action)
         }
     }
 }
 
 pub mod commit {
-    use super::*;
+    use super::{hidden::Marker, *};
 
     pub struct Commit {
         author: String,
@@ -475,7 +492,7 @@ pub mod commit {
         }
     }
 
-    pub trait TCommit {
+    pub trait TCommit: Marker {
         fn commits(&self) -> Vec<Commit>;
     }
 
@@ -502,7 +519,7 @@ pub mod commit {
 }
 
 pub mod comment {
-    use super::*;
+    use super::{hidden::Marker, *};
 
     pub struct Comment {
         comment: String,
@@ -519,7 +536,7 @@ pub mod comment {
         }
     }
 
-    pub trait TComment {
+    pub trait TComment: Marker {
         fn comment(&self) -> Option<Comment>;
     }
 
@@ -570,7 +587,7 @@ pub mod comment {
 }
 
 pub mod review {
-    use super::*;
+    use super::{hidden::Marker, *};
 
     pub struct Review {
         _comment: String,
@@ -588,17 +605,18 @@ pub mod review {
         }
     }
 
-    pub trait TReview {
-        fn review(&self) -> Review;
+    pub trait TReview: Marker {
+        fn review(&self) -> Option<Review>;
     }
 
     impl TReview for EPullRequestReviewComment {
-        fn review(&self) -> Review {
-            Review {
+        fn review(&self) -> Option<Review> {
+            let review = Review {
                 _comment: self.comment.body.clone(),
                 _reviewer: self.sender.login.clone(),
                 url: self.comment.html_url.clone(),
-            }
+            };
+            Some(review)
         }
     }
 }

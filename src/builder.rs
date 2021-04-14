@@ -48,28 +48,32 @@ impl MessageBuilder<(), ()> {
     }
 }
 
-impl MessageBuilder<String, String> {
-    pub fn build(self) -> Message {
+impl MessageBuilder<Option<String>, Option<String>> {
+    pub fn build(self) -> Option<Message> {
         use std::fmt::Write;
 
-        let mut buf = String::new();
-        writeln!(buf, "### {}", self.title).expect("buf error");
-        writeln!(buf, "---").expect("buf error");
+        if let (Some(title), Some(footer)) = (self.title, self.footer) {
+            let mut buf = String::new();
+            writeln!(buf, "### {}", title).expect("buf error");
+            writeln!(buf, "---").expect("buf error");
 
-        for m in self.msgs {
-            writeln!(buf, "{}", m).expect("buf error");
+            for m in self.msgs {
+                writeln!(buf, "{}", m).expect("buf error");
+            }
+
+            writeln!(buf, "##### {}", footer).expect("buf error");
+
+            Some(Message(buf))
+        } else {
+            None
         }
-
-        writeln!(buf, "##### {}", self.footer).expect("buf error");
-
-        Message(buf)
     }
 }
 
 impl<Title, Footer> MessageBuilder<Title, Footer> {
-    pub fn title(self, title: impl Into<String>) -> MessageBuilder<String, Footer> {
+    pub fn title(self, title: Option<impl Into<String>>) -> MessageBuilder<Option<String>, Footer> {
         MessageBuilder {
-            title: title.into(),
+            title: title.map(|v| v.into()),
             msgs: self.msgs,
             footer: self.footer,
         }
@@ -84,8 +88,10 @@ impl<Title, Footer> MessageBuilder<Title, Footer> {
         }
     }
 
-    pub fn msg(mut self, msg: impl Into<String>) -> MessageBuilder<Title, Footer> {
-        self.msgs.push(msg.into());
+    pub fn msg(mut self, msg: Option<String>) -> MessageBuilder<Title, Footer> {
+        if let Some(msg) = msg {
+            self.msgs.push(msg.into());
+        }
         MessageBuilder {
             title: self.title,
             msgs: self.msgs,
@@ -93,18 +99,18 @@ impl<Title, Footer> MessageBuilder<Title, Footer> {
         }
     }
 
-    pub fn repo(self, footer: String) -> MessageBuilder<Title, String> {
+    pub fn repo(self, footer: Option<String>) -> MessageBuilder<Title, Option<String>> {
         MessageBuilder {
             title: self.title,
             msgs: self.msgs,
-            footer: footer,
+            footer,
         }
     }
 }
 
 pub struct ContentBuilder<T> {
     event: Rc<T>,
-    messages: Vec<String>,
+    messages: Option<Vec<String>>,
 }
 
 impl<T> ContentBuilder<T>
@@ -114,49 +120,83 @@ where
     pub fn new(event: Rc<T>) -> Self {
         Self {
             event: event,
-            messages: Vec::new(),
+            messages: Some(Vec::new()),
         }
     }
 
+    fn and_then<F: FnOnce(&mut Vec<String>) -> ()>(&mut self, f: F) {
+        match self.messages.as_mut() {
+            Some(v) => f(v),
+            None => {}
+        }
+    }
+
+    fn push_msg(&mut self, msg: impl Into<String>) {
+        self.and_then(|v| v.push(msg.into()));
+    }
+
+    fn push_some_msg(&mut self, msg: Option<String>) {
+        if let Some(msg) = msg {
+            self.push_msg(msg);
+        }
+    }
+
+    fn push_msg_or_none(&mut self, msg: Option<String>) {
+        if let Some(msg) = msg {
+            self.push_msg(msg);
+        } else {
+            self.messages = None;
+        }
+    }
+
+    fn append_msg(&mut self, mut msgs: Vec<String>) {
+        self.and_then(|v| v.append(&mut msgs));
+    }
+
+    fn none(&mut self) {
+        self.messages = None;
+    }
+
     pub fn msg(mut self, msg: impl Into<String>) -> Self {
-        self.messages.push(msg.into());
+        self.and_then(|v| v.push(msg.into()));
+
         Self {
             event: self.event,
             messages: self.messages,
         }
     }
 
-    pub fn build_with_separator(self, separator: &str) -> (String, ContentBuilder<T>) {
-        let msg = self.messages.join(separator);
-        (msg, self.clean())
-    }
-
-    pub fn build(self) -> String {
-        let msg = self.messages.join(" ");
-        msg
-    }
-    pub fn build_trim(self) -> String {
-        let msg = self.messages.join("");
+    pub fn build_with_separator(self, separator: &str) -> Option<String> {
+        let msg = self.messages.map(|v| v.join(separator));
         msg
     }
 
-    pub fn build_lines(self) -> String {
-        let msg = self.messages.join("\n");
+    pub fn build(self) -> Option<String> {
+        let msg = self.messages.map(|v| v.join(" "));
+        msg
+    }
+    pub fn build_trim(self) -> Option<String> {
+        let msg = self.messages.map(|v| v.join(""));
         msg
     }
 
-    pub fn take(self) -> Vec<String> {
-        self.messages
+    pub fn build_lines(self) -> Option<String> {
+        let msg = self.messages.map(|v| v.join("\n"));
+        msg
     }
+
+    // pub fn take(self) -> Vec<String> {
+    //     self.messages
+    // }
 
     pub fn clean(mut self) -> ContentBuilder<T> {
-        self.messages.clear();
+        self.and_then(|v| v.clear());
         self
     }
 
     pub fn group(mut self, f: fn(_self: ContentBuilder<T>) -> String) -> ContentBuilder<T> {
-        self.messages
-            .push(f(ContentBuilder::new(Rc::clone(&self.event))));
+        let t = f(ContentBuilder::new(Rc::clone(&self.event)));
+        self.and_then(|v| v.push(t));
         self
     }
 }
@@ -169,8 +209,7 @@ where
         let assignees: Vec<String> = self.event.assignees().into_iter().map(|a| a.md()).collect();
         let msg = truncate_msg(assignees, 2);
 
-        // self.messages.append();
-        self.messages.push(msg);
+        self.and_then(|v| v.push(msg));
         self
     }
 }
@@ -180,10 +219,14 @@ where
     T: TIssue,
 {
     pub fn issue(mut self) -> ContentBuilder<T> {
-        self.messages.push(self.event.issue().link_md());
+        match self.event.issue() {
+            Some(i) => self.and_then(|v| v.push(i.link_md())),
+            None => self.messages = None,
+        }
         self
     }
 }
+
 impl<T> ContentBuilder<T>
 where
     T: TLabel,
@@ -191,7 +234,7 @@ where
     pub fn labels(mut self) -> ContentBuilder<T> {
         let labels = self.event.labels().into_iter().map(|l| l.md()).collect();
         let msg = truncate_msg(labels, 2);
-        self.messages.push(msg);
+        self.push_msg(msg);
         self
     }
 }
@@ -200,7 +243,8 @@ where
     T: TPullRequest,
 {
     pub fn pr(mut self) -> ContentBuilder<T> {
-        self.messages.push(self.event.pr().link_md());
+        let msg = self.event.pr().map(|v| v.link_md());
+        self.push_some_msg(msg);
         self
     }
 }
@@ -210,7 +254,8 @@ where
     T: TRepository,
 {
     pub fn repo(mut self) -> ContentBuilder<T> {
-        self.messages.push(self.event.repo().link_md());
+        let msg = self.event.repo().map(|v| v.link_md());
+        self.push_msg_or_none(msg);
         self
     }
 }
@@ -220,7 +265,8 @@ where
     T: TAction,
 {
     pub fn action(mut self) -> ContentBuilder<T> {
-        self.messages.push(self.event.action().md());
+        let msg = self.event.action().map(|v| v.md());
+        self.push_msg_or_none(msg);
         self
     }
 }
@@ -230,8 +276,12 @@ where
     T: TCommit,
 {
     pub fn commit(mut self) -> ContentBuilder<T> {
-        let mut commits: Vec<String> = self.event.commits().into_iter().map(|c| c.md()).collect();
-        self.messages.append(&mut commits);
+        let commits: Vec<String> = self.event.commits().into_iter().map(|c| c.md()).collect();
+        if commits.len() < 1 {
+            self.none();
+        } else {
+            self.append_msg(commits);
+        }
         self
     }
 }
@@ -241,9 +291,8 @@ where
     T: TComment,
 {
     pub fn comment(mut self) -> ContentBuilder<T> {
-        if let Some(comment) = self.event.comment() {
-            self.messages.push(comment.comment());
-        }
+        let comment = self.event.comment().map(|v| v.comment());
+        self.push_some_msg(comment);
         self
     }
 }
@@ -253,13 +302,14 @@ where
     T: TReview,
 {
     pub fn review_url(mut self) -> ContentBuilder<T> {
-        self.messages.push(self.event.review().url());
+        let url = self.event.review().map(|v| v.url());
+        self.push_some_msg(url);
         self
     }
 
     pub fn review_md(mut self) -> ContentBuilder<T> {
-        self.messages
-            .push(self.event.review().review("Review Comment"));
+        let msg = self.event.review().map(|v| v.review("Review Comment"));
+        self.push_some_msg(msg);
         self
     }
 }
