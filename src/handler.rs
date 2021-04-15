@@ -121,38 +121,31 @@ async fn pull_request_handler(
     hook: &WebHook,
     event: PullRequestEvent,
 ) -> Result<HttpResponse, MyError> {
-    use github_webhook::event::PullRequestAction::*;
-    match &event.action {
-        Opened | Edited | Closed | Reopened | Assigned | Unassigned | ReviewRequested
-        | ReviewRequestRemoved | ReadyForReview | Labeled | Unlabeled | Locked | Unlocked => {
-            let event = Rc::new(EPullRequest(event));
+    let event = Rc::new(EPullRequest(event));
 
-            let title = ContentBuilder::new(Rc::clone(&event))
-                .msg("Pull Request")
-                .pr()
-                .action()
-                .build();
-            let msg = ContentBuilder::new(Rc::clone(&event))
-                .comment()
-                .assignees()
-                .labels()
-                .build_lines();
-            let repo = ContentBuilder::new(Rc::clone(&event)).repo().build();
+    let title = ContentBuilder::new(Rc::clone(&event))
+        .msg("Pull Request")
+        .pr()
+        .action()
+        .build();
+    let msg = ContentBuilder::new(Rc::clone(&event))
+        .comment()
+        .assignees()
+        .labels()
+        .build_lines();
+    let repo = ContentBuilder::new(Rc::clone(&event)).repo().build();
 
-            let message = MessageBuilder::new()
-                .title(title)
-                .msg(msg)
-                .repo(repo)
-                .build();
+    let message = MessageBuilder::new()
+        .title(title)
+        .msg(msg)
+        .repo(repo)
+        .build();
 
-            if let Some(message) = message {
-                let _ = hook.post_message(message.as_ref()).await?;
-                Ok(HttpResponse::Ok().body("successfully posted"))
-            } else {
-                Ok(HttpResponse::Ok().body("successfully accepted, but not posted"))
-            }
-        }
-        _ => Ok(HttpResponse::Ok().body("successfully accepted, but not posted")),
+    if let Some(message) = message {
+        let _ = hook.post_message(message.as_ref()).await?;
+        Ok(HttpResponse::Ok().body("successfully posted"))
+    } else {
+        Ok(HttpResponse::Ok().body("successfully accepted, but not posted"))
     }
 }
 

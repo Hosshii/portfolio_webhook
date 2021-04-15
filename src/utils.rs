@@ -387,7 +387,11 @@ pub mod action {
 
     impl TAction for EIssues {
         fn action(&self) -> Option<Action> {
-            let assignee = self.issue.assignee.as_ref().map(|v| v.login.clone());
+            use github_webhook::event::IssuesAction::*;
+            let assignee = match self.action {
+                Assigned | Unassigned => self.issue.assignee.as_ref().map(|v| v.login.clone()),
+                _ => None,
+            };
             let action = Action {
                 action: format!("{:?}", self.action),
                 sender: self.sender.login.clone(),
@@ -411,22 +415,30 @@ pub mod action {
 
     impl TAction for EPullRequest {
         fn action(&self) -> Option<Action> {
-            let assignee = self.pull_request.assignee.as_ref().map(|v| v.login.clone());
-            let action = if let event::PullRequestAction::Closed = self.action {
-                if self.pull_request.merged {
-                    "Merged".to_owned()
-                } else {
-                    "Closed".to_owned()
+            use github_webhook::event::PullRequestAction::*;
+            match self.action {
+                Opened | Edited | Closed | Reopened | Assigned | Unassigned | ReviewRequested
+                | ReviewRequestRemoved | ReadyForReview | Labeled | Unlabeled | Locked
+                | Unlocked => {
+                    let assignee = self.pull_request.assignee.as_ref().map(|v| v.login.clone());
+                    let action = if let event::PullRequestAction::Closed = self.action {
+                        if self.pull_request.merged {
+                            "Merged".to_owned()
+                        } else {
+                            "Closed".to_owned()
+                        }
+                    } else {
+                        format!("{:?}", self.action)
+                    };
+                    let action = Action {
+                        action,
+                        sender: self.sender.login.clone(),
+                        assignee,
+                    };
+                    Some(action)
                 }
-            } else {
-                format!("{:?}", self.action)
-            };
-            let action = Action {
-                action,
-                sender: self.sender.login.clone(),
-                assignee,
-            };
-            Some(action)
+                _ => None,
+            }
         }
     }
 
